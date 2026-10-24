@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSource } from "@/lib/db/source";
 import { loadPlanGames } from "@/lib/server/load";
 import { planDays } from "@/lib/plan";
 import { formatDayLabel } from "@/lib/time";
-import { SharedPlan } from "@/components/SharedPlan";
+import { MakeYourOwn, SharedPlan } from "@/components/SharedPlan";
 import { APP_NAME } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
@@ -45,12 +44,7 @@ export default async function Page({ params, searchParams }: Params) {
   return (
     <div className="space-y-8 pb-10">
       <SharedPlan plan={data.plan} games={data.games} day={selected} days={days} />
-      <div className="panel flex flex-wrap items-center justify-between gap-3 p-4">
-        <p className="text-sm">Plan your own day, with listings for where you live.</p>
-        <Link href="/" className="btn btn-primary no-underline">
-          Make my plan
-        </Link>
-      </div>
+      <MakeYourOwn slug={data.plan.slug} />
     </div>
   );
 }

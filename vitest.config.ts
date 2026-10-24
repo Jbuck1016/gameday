@@ -7,6 +7,6 @@ export default defineConfig({
     environment: "node",
   },
   resolve: {
-    alias: { "@": path.resolve(__dirname, ".") },
+    alias: { "@": path.resolve(__dirname, "."), "server-only": path.resolve(__dirname, "tests/stubs/empty.ts") },
   },
 });

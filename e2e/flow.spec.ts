@@ -111,3 +111,83 @@ test.describe("api", () => {
     expect((await request.post("/api/plans", { data: { items: [] } })).status()).toBe(400);
   });
 });
+
+test.describe("v2: first visit, measurement, calendar feeds", () => {
+  test("best games panel plans the day in one tap", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/");
+    const best = page.getByTestId("best-today");
+    await expect(best).toBeVisible();
+    const n = await best.getByTestId("best-game").count();
+    expect(n).toBeGreaterThanOrEqual(4);
+    await expect(best.getByText("Your team").first()).toBeVisible();
+    await page.screenshot({ path: `${SHOTS}/best-today.png` });
+    await best.getByRole("button", { name: /Plan these/ }).click();
+    await expect(page).toHaveURL(/\/plan\?day=2026-10-24/);
+    await expect(page.getByTestId("plan-game")).toHaveCount(n);
+    await page.screenshot({ path: `${SHOTS}/best-planned.png`, fullPage: true });
+  });
+
+  test("best games panel hides while searching or filtering", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("best-today")).toBeVisible();
+    await page.getByPlaceholder("Search a team or league").fill("Arsenal");
+    await expect(page.getByTestId("best-today")).toHaveCount(0);
+  });
+
+  test("a shared link opens straight onto the day", async ({ page }) => {
+    await page.goto("/?day=2026-10-25");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("October 25");
+  });
+
+  test("visits and picks are logged through the beacon", async ({ page }) => {
+    const posts: string[] = [];
+    await page.route("**/api/track", async (route) => {
+      posts.push(route.request().postDataBuffer()?.toString("utf8") ?? "");
+      await route.continue();
+    });
+    await page.goto("/");
+    await page.locator('[data-testid="game-row"]').first().getByRole("button", { name: /Want to watch/ }).click();
+    await page.waitForTimeout(1800);
+    const all = posts.join("\n");
+    expect(all).toContain('"n":"visit"');
+    expect(all).toContain('"n":"plan_item_added"');
+  });
+
+  test("track endpoint accepts good events and rejects junk", async ({ request }) => {
+    const ok = await request.post("/api/track", {
+      data: { v: "abcdefgh12345678", s: "sessabcd12345678", events: [{ n: "visit", path: "/", p: { ref: null } }] },
+    });
+    expect(ok.status()).toBe(204);
+    const badName = await request.post("/api/track", { data: { v: "abcdefgh12345678", s: "sessabcd12345678", events: [{ n: "DROP TABLE" }] } });
+    expect(badName.status()).toBe(400);
+    const badId = await request.post("/api/track", { data: { v: "x", s: "y", events: [{ n: "visit" }] } });
+    expect(badId.status()).toBe(400);
+  });
+
+  test("teams page creates a subscribable calendar", async ({ page, request }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/teams");
+    await page.getByLabel("Add a team").fill("Kings");
+    await page.getByRole("button", { name: /Los Angeles Kings/ }).first().click();
+    const sub = page.getByTestId("calendar-subscribe");
+    await sub.getByRole("button", { name: "Create calendar" }).click();
+    const apple = sub.getByRole("link", { name: "Apple or Outlook" });
+    await expect(apple).toHaveAttribute("href", /^webcal:\/\/.+\/cal\/[A-Za-z0-9]{20}\.ics\?tz=/);
+    await expect(sub.getByRole("link", { name: "Google Calendar" })).toHaveAttribute("href", /calendar\.google\.com.*cid=webcal/);
+    await page.screenshot({ path: `${SHOTS}/teams-calendar.png` });
+    const href = (await apple.getAttribute("href"))!;
+    const path = href.replace(/^webcal:\/\/[^/]+/, "");
+    const res = await request.get(path);
+    expect(res.status()).toBe(200);
+    expect(res.headers()["content-type"]).toContain("text/calendar");
+    const body = await res.text();
+    expect(body).toContain("REFRESH-INTERVAL");
+    expect(body).toContain("X-WR-CALNAME:Game Day: Los Angeles Kings");
+  });
+
+  test("unknown calendars are a clean 404", async ({ request }) => {
+    expect((await request.get("/cal/AAAAAAAAAAAAAAAAAAAA.ics")).status()).toBe(404);
+    expect((await request.get("/cal/nope.ics")).status()).toBe(404);
+  });
+});

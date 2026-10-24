@@ -8,7 +8,7 @@ import { THEMES, THEME_IDS, barStyle } from "@/lib/themes";
 import { addDays, dateKey, formatDayLabel, localDayRange, minutesIntoDay } from "@/lib/time";
 import { planDays } from "@/lib/plan";
 import { PlanView } from "./PlanView";
-import { track } from "@vercel/analytics";
+import { track } from "@/lib/track";
 
 type Size = "portrait" | "story" | "square";
 
@@ -74,8 +74,17 @@ export function PlanPage() {
 
   useEffect(() => {
     if (!ready || !days.length) return;
-    if (!day || !days.includes(day)) setDay(days.find((d) => d >= defaultDay) ?? days[0]);
+    if (!day || !days.includes(day)) {
+      const q = new URLSearchParams(window.location.search).get("day");
+      setDay(q && days.includes(q) ? q : (days.find((d) => d >= defaultDay) ?? days[0]));
+    }
   }, [ready, days, day, defaultDay]);
+
+  useEffect(() => {
+    if (ready) track("plan_viewed", { games: prefs.plan.length, days: days.length });
+    // once per visit to the page
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
 
   const teamsKey = prefs.localTeams.map((t) => t.id).join(",");
   useEffect(() => {
@@ -197,9 +206,11 @@ export function PlanPage() {
     return (
       <div className="panel p-8 text-center">
         <h1 className="display text-3xl">Your plan is empty</h1>
-        <p className="mt-2 text-muted">Mark games as Must or Want while you browse and they&apos;ll show up here.</p>
+        <p className="mt-2 text-muted">
+          Mark games Must or Want while you browse, or start from the day&apos;s best games and take out what you don&apos;t want.
+        </p>
         <Link href="/" className="btn btn-primary mt-6 no-underline">
-          Browse games
+          See today&apos;s best
         </Link>
       </div>
     );
@@ -299,6 +310,13 @@ export function PlanPage() {
           </p>
         )}
       </section>
+
+      <p className="text-sm text-muted">
+        Want your teams&apos; games in your calendar, with channels filled in as they&apos;re announced?{" "}
+        <Link href="/teams" className="link">
+          Follow your teams
+        </Link>
+      </p>
     </div>
   );
 }

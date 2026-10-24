@@ -61,11 +61,13 @@ export function DayCard({
   model,
   size,
   areaLabel,
+  siteHost = null,
 }: {
   theme: Theme;
   model: DayModel;
   size: CardSize;
   areaLabel: string | null;
+  siteHost?: string | null;
 }) {
   const dim = CARD_DIMENSIONS[size];
   const span = model.windowEnd - model.windowStart;
@@ -302,6 +304,7 @@ export function DayCard({
         <div style={flexCol({ alignItems: "flex-end", gap: 4 })}>
           {hidden > 0 && <div style={{ display: "flex", fontSize: 17, color: theme.text }}>{`+${hidden} more in the plan`}</div>}
           <div style={{ display: "flex", fontSize: 15, color: theme.muted }}>End times estimated</div>
+          {siteHost && <div style={{ display: "flex", fontSize: 18, color: theme.text }}>{`Make yours: ${siteHost}`}</div>}
         </div>
       </div>
     </div>

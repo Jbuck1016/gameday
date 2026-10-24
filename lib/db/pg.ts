@@ -4,7 +4,7 @@
 import postgres from "postgres";
 import type { DataSource, EventQuery, WatchQuery } from "./source";
 import { randomSlug } from "./source";
-import type { EventRow, League, LocalTeam, NewPlan, OptionRow, Service, StoredPlan, Team, ThemeId } from "@/lib/types";
+import type { CalendarFeed, EventRow, League, LocalTeam, NewPlan, OptionRow, Service, StoredPlan, Team, ThemeId, TrackedEvent } from "@/lib/types";
 
 const PROJECT_REF = "soknxaqllvdpshezjbnw";
 const POOLER_HOSTS = ["aws-0-us-west-2.pooler.supabase.com", "aws-1-us-west-2.pooler.supabase.com"];
@@ -237,5 +237,45 @@ export class PgSource implements DataSource {
       select count(*)::int as n from gameday_site.plans
       where creator_ip_hash = ${ipHash} and created_at > now() - interval '1 hour'`;
     return num(r?.n ?? 0);
+  }
+
+  async logEvents(events: TrackedEvent[]): Promise<void> {
+    if (!events.length) return;
+    const sql = await getSql();
+    const rows = events.map((e) => ({
+      visitor: e.visitor,
+      session: e.session,
+      name: e.name,
+      path: e.path,
+      props: sql.json(e.props),
+      internal: e.internal,
+    }));
+    await sql`insert into gameday_site.events ${sql(rows, "visitor", "session", "name", "path", "props", "internal")}`;
+  }
+
+  async createFeed(f: Omit<CalendarFeed, "token">, visitor: string | null): Promise<{ token: string }> {
+    const sql = await getSql();
+    const token = randomSlug(20);
+    await sql`
+      insert into gameday_site.calendar_feeds (token, team_ids, local_team_ids, services, spanish, label, visitor)
+      values (${token}, ${f.teamIds}::text[], ${f.localTeamIds}::text[], ${f.services}::text[], ${f.spanish}, ${f.label}, ${visitor})`;
+    return { token };
+  }
+
+  async getFeed(token: string): Promise<CalendarFeed | null> {
+    const sql = await getSql();
+    const [r] = await sql`
+      update gameday_site.calendar_feeds set last_fetched_at = now(), fetch_count = fetch_count + 1
+      where token = ${token}
+      returning token, team_ids, local_team_ids, services, spanish, label`;
+    if (!r) return null;
+    return {
+      token: String(r.token),
+      teamIds: (r.team_ids as string[]) ?? [],
+      localTeamIds: (r.local_team_ids as string[]) ?? [],
+      services: (r.services as string[]) ?? [],
+      spanish: Boolean(r.spanish),
+      label: (r.label as string) ?? null,
+    };
   }
 }

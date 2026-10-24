@@ -30,7 +30,7 @@ export async function GET(req: Request) {
     const model = buildDayModel(games, priorities, day, plan.timezone, plan.services);
     const dim = CARD_DIMENSIONS[size];
     const fonts = await fontsFor(theme.id);
-    return new ImageResponse(<DayCard theme={theme} model={model} size={size} areaLabel={plan.areaLabel} />, {
+    return new ImageResponse(<DayCard theme={theme} model={model} size={size} areaLabel={plan.areaLabel} siteHost={u.host} />, {
       width: dim.width,
       height: dim.height,
       fonts,

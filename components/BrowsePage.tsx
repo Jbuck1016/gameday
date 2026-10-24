@@ -5,10 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import { usePrefs, gamesQuery } from "@/lib/prefs";
 import type { Game } from "@/lib/types";
 import { THEMES } from "@/lib/themes";
-import { addDays, dateKey, formatDayLabel, localDayRange } from "@/lib/time";
+import { addDays, dateKey, formatDayLabel, localDayRange, todayKey } from "@/lib/time";
 import { isRanked } from "@/lib/games";
 import { GameRow } from "./GameRow";
 import { AreaBanner } from "./AreaSetup";
+import { BestToday } from "./BestToday";
 
 type View = "day" | "week";
 
@@ -24,7 +25,9 @@ export function BrowsePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (ready && meta && day === null) setDay(defaultDay);
+    if (!ready || !meta || day !== null) return;
+    const q = new URLSearchParams(window.location.search).get("day");
+    setDay(q && /^\d{4}-\d{2}-\d{2}$/.test(q) ? q : defaultDay);
   }, [ready, meta, day, defaultDay]);
 
   const tz = prefs.tz;
@@ -152,6 +155,10 @@ export function BrowsePage() {
           </label>
         )}
       </div>
+
+      {view === "day" && day && games && !search.trim() && leagues.length === 0 && (
+        <BestToday games={games} day={day} isToday={!meta?.fixtureMode && day === todayKey(tz)} theme={theme} tz={tz} />
+      )}
 
       {error && <p className="panel p-4 text-sm">{error}</p>}
       {!error && games === null && <p className="py-10 text-center text-muted">Loading games…</p>}

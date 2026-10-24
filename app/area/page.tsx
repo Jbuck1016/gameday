@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { usePrefs, type LocalTeamPref } from "@/lib/prefs";
 import { fetchArea, toPrefTeams } from "@/components/AreaSetup";
 import { TeamSearch } from "@/components/TeamSearch";
-import { track } from "@vercel/analytics";
+import { track } from "@/lib/track";
 
 export default function AreaPage() {
   const router = useRouter();

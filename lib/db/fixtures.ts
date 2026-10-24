@@ -4,7 +4,7 @@
 
 import type { DataSource, EventQuery, WatchQuery } from "./source";
 import { randomSlug } from "./source";
-import type { EventRow, League, LocalTeam, NewPlan, OptionRow, Service, StoredPlan, Team } from "@/lib/types";
+import type { CalendarFeed, EventRow, League, LocalTeam, NewPlan, OptionRow, Service, StoredPlan, Team, TrackedEvent } from "@/lib/types";
 import fixture from "@/fixtures/weekend-2026-10-24.json";
 
 type Fixture = {
@@ -31,6 +31,8 @@ function haversineKm(aLat: number, aLon: number, bLat: number, bLon: number): nu
 }
 
 const plans = new Map<string, StoredPlan>();
+const feeds = new Map<string, CalendarFeed>();
+export const fixtureEvents: TrackedEvent[] = [];
 
 export class FixtureSource implements DataSource {
   readonly kind = "fixtures" as const;
@@ -120,6 +122,18 @@ export class FixtureSource implements DataSource {
   }
   async countRecentPlans(): Promise<number> {
     return 0;
+  }
+  async logEvents(events: TrackedEvent[]): Promise<void> {
+    fixtureEvents.push(...events);
+    if (fixtureEvents.length > 500) fixtureEvents.splice(0, fixtureEvents.length - 500);
+  }
+  async createFeed(f: Omit<CalendarFeed, "token">): Promise<{ token: string }> {
+    const token = randomSlug(20);
+    feeds.set(token, { ...f, token });
+    return { token };
+  }
+  async getFeed(token: string): Promise<CalendarFeed | null> {
+    return feeds.get(token) ?? null;
   }
 }
 

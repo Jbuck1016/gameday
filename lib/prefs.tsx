@@ -7,7 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { Game, League, PlanItem, Priority, Service, ThemeId } from "@/lib/types";
 import { guessTimezone, todayKey } from "@/lib/time";
 import { isThemeId } from "@/lib/themes";
-import { track } from "@vercel/analytics";
+import { initTracking, track } from "@/lib/track";
 
 export type Area = {
   label: string;
@@ -85,6 +85,7 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
   const [themeOverride, setThemeOverride] = useState<ThemeId | null>(null);
 
   useEffect(() => {
+    initTracking();
     setPrefs(load());
     const q = new URLSearchParams(window.location.search).get("theme");
     if (isThemeId(q)) setThemeOverride(q);
@@ -112,7 +113,9 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
     (g: Pick<Game, "id" | "start" | "leagueId" | "name">, p: Priority | null) => {
       update((prev) => {
         const rest = prev.plan.filter((i) => i.eventId !== g.id);
-        if (p) track("plan_item_added", { priority: p, league: g.leagueId });
+        if (p && !prev.plan.some((i) => i.eventId === g.id && i.priority === p)) {
+          track("plan_item_added", { priority: p, league: g.leagueId, size: rest.length + 1 });
+        }
         return {
           ...prev,
           plan: p ? [...rest, { eventId: g.id, priority: p, start: g.start, leagueId: g.leagueId, name: g.name }] : rest,

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePrefs, type LocalTeamPref } from "@/lib/prefs";
 import type { LocalTeam } from "@/lib/types";
-import { track } from "@vercel/analytics";
+import { track } from "@/lib/track";
 
 type AreaResult = { source: "ip" | "zip" | "none"; label: string | null; zip: string | null; teams: LocalTeam[] };
 
@@ -71,7 +71,10 @@ export function AreaBanner() {
         <button
           type="button"
           className="btn btn-primary"
-          onClick={() => update((p) => ({ ...p, area: p.area ? { ...p.area, confirmed: true } : p.area }))}
+          onClick={() => {
+            update((p) => ({ ...p, area: p.area ? { ...p.area, confirmed: true } : p.area }));
+            track("area_confirmed", { teams: prefs.localTeams.length });
+          }}
         >
           Looks right
         </button>

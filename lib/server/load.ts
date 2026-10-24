@@ -11,13 +11,17 @@ export type GamesQuery = {
   spanish: boolean;
   leagues?: string[] | null;
   ids?: string[] | null;
+  /** skip the where-to-watch lookup (for far-off games in calendar feeds) */
+  withOptions?: boolean;
 };
 
 export async function loadGames(q: GamesQuery): Promise<Game[]> {
   const src = await getSource();
   const [events, options, leagues] = await Promise.all([
     src.events({ from: q.from, to: q.to, leagues: q.leagues, ids: q.ids }),
-    src.watchOptions({ from: q.from, to: q.to, localTeams: q.localTeams, spanish: q.spanish, leagues: q.leagues }),
+    q.withOptions === false
+      ? Promise.resolve([])
+      : src.watchOptions({ from: q.from, to: q.to, localTeams: q.localTeams, spanish: q.spanish, leagues: q.leagues }),
     src.leagues(),
   ]);
   const teamIds = Array.from(

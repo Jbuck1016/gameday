@@ -155,3 +155,23 @@ export type StoredPlan = {
   items: { eventId: string; priority: Priority }[];
   createdAt: string;
 };
+
+/** One analytics event as stored in gameday_site.events. */
+export type TrackedEvent = {
+  visitor: string;
+  session: string;
+  name: string;
+  path: string | null;
+  props: Record<string, string | number | boolean | null>;
+  internal: boolean;
+};
+
+/** A subscribable calendar of a few teams' games, with channels for the subscriber's area. */
+export type CalendarFeed = {
+  token: string;
+  teamIds: string[];
+  localTeamIds: string[];
+  services: string[];
+  spanish: boolean;
+  label: string | null;
+};

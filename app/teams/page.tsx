@@ -8,7 +8,8 @@ import { dateKey, formatDayLabel } from "@/lib/time";
 import { overlaps } from "@/lib/schedule/overlap";
 import { matchupLabel } from "@/lib/games";
 import { TeamSearch } from "@/components/TeamSearch";
-import { track } from "@vercel/analytics";
+import { CalendarSubscribe } from "@/components/CalendarSubscribe";
+import { track } from "@/lib/track";
 
 export default function TeamsPage() {
   const { prefs, theme: themeId, setPriority, priorityOf } = usePrefs();
@@ -107,6 +108,8 @@ export default function TeamsPage() {
           </label>
         </div>
       </section>
+
+      <CalendarSubscribe teams={teams} />
 
       {error && <p className="panel p-4 text-sm">{error}</p>}
       {teams.length > 0 && games === null && !error && <p className="py-6 text-center text-muted">Loading schedules…</p>}

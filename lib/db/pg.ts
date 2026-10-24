@@ -100,7 +100,7 @@ export class PgSource implements DataSource {
       short_name: String(r.short_name),
       default_duration_min: num(r.default_duration_min),
     }));
-    this.leagueCache = { at: Date.now(), rows: out };
+    if (out.length) this.leagueCache = { at: Date.now(), rows: out };
     return out;
   }
 

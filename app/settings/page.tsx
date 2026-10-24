@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
 import { THEMES, THEME_IDS } from "@/lib/themes";
+import { AccountSection } from "@/components/AccountSection";
 
 const GROUPS: { title: string; kinds: string[] }[] = [
   { title: "Live TV", kinds: ["live_tv"] },
@@ -15,7 +16,7 @@ const GROUPS: { title: string; kinds: string[] }[] = [
 const HIDE = new Set(["clippervision_app", "spectrum_sportsnet_plus", "dazn"]);
 
 export default function SettingsPage() {
-  const { prefs, update, meta, theme, setTheme } = usePrefs();
+  const { prefs, update, meta, theme, setTheme, account } = usePrefs();
   const services = (meta?.services ?? []).filter((s) => !HIDE.has(s.id));
   const toggle = (id: string) =>
     update((p) => ({ ...p, services: p.services.includes(id) ? p.services.filter((s) => s !== id) : [...p.services, id] }));
@@ -25,8 +26,10 @@ export default function SettingsPage() {
       <header>
         <p className="label text-sm text-accent">Settings</p>
         <h1 className="display text-4xl sm:text-5xl">Make it yours</h1>
-        <p className="mt-2 text-sm text-muted">Saved in this browser only.</p>
+        <p className="mt-2 text-sm text-muted">{account ? "Saved to your account." : "Saved in this browser."}</p>
       </header>
+
+      <AccountSection />
 
       <section aria-labelledby="area-h" className="panel p-4">
         <h2 id="area-h" className="label text-sm text-muted">

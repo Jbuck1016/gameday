@@ -11,6 +11,9 @@ Plan what you're watching. Pick games across 12 leagues, mark each as must-watch
 - **Teams** view: up to six teams over the next six months, with same-day clashes flagged.
 - **Share**: a link, a calendar file (.ics), or an image card in portrait, story or square.
 - Three looks: Broadcast, Editorial, Terminal.
+- **Best today**: a short, explained pick of the day's games with one-tap planning.
+- **Team calendars**: subscribe once; games and channels update in your own calendar app.
+- **Optional accounts** (Supabase Auth, Google or email link): settings and plans follow you between devices. Planning never requires one.
 
 ## Stack
 
@@ -34,6 +37,8 @@ With no database credentials the app runs on a bundled snapshot of the weekend o
 | `GAMEDAY_DATABASE_URL` | Optional. Full connection string, overrides the two above |
 | `IP_HASH_SALT` | Optional. Salt for rate-limit hashing |
 | `GAMEDAY_FIXTURES` | `1` to use the snapshot instead of the database |
+| `NEXT_PUBLIC_EMAIL_SIGNIN` | `1` to show email-link sign-in (needs custom SMTP in Supabase Auth) |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Optional overrides for sign-in; defaults point at the project |
 
 The `gameday_web` role can read listings and write shared plans and zip lookups. Nothing else.
 

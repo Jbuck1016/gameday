@@ -1,7 +1,7 @@
 // The data layer the site talks to. Production reads Postgres as the gameday_web role;
 // local development and tests read a snapshot of real data from fixtures/.
 
-import type { CalendarFeed, EventRow, League, LocalTeam, NewPlan, OptionRow, Service, StoredPlan, Team, TrackedEvent } from "@/lib/types";
+import type { AccountPrefs, CalendarFeed, EventRow, League, LocalTeam, NewPlan, OptionRow, Service, StoredPlan, Team, TrackedEvent } from "@/lib/types";
 
 export type EventQuery = { from: Date; to: Date; leagues?: string[] | null; ids?: string[] | null };
 export type WatchQuery = { from: Date; to: Date; localTeams: string[]; spanish: boolean; leagues?: string[] | null };
@@ -23,9 +23,13 @@ export interface DataSource {
   getPlan(slug: string): Promise<StoredPlan | null>;
   countRecentPlans(ipHash: string): Promise<number>;
   logEvents(events: TrackedEvent[]): Promise<void>;
-  createFeed(f: Omit<CalendarFeed, "token">, visitor: string | null): Promise<{ token: string }>;
+  createFeed(f: Omit<CalendarFeed, "token">, visitor: string | null, userId?: string | null): Promise<{ token: string }>;
   /** Looks up a feed and records the fetch (calendar apps poll this). */
   getFeed(token: string): Promise<CalendarFeed | null>;
+  getAccountPrefs(userId: string): Promise<{ prefs: AccountPrefs; updatedAt: string } | null>;
+  saveAccountPrefs(userId: string, p: AccountPrefs): Promise<string>;
+  linkVisitor(userId: string, visitor: string): Promise<void>;
+  deleteAccount(userId: string): Promise<void>;
 }
 
 export function usingFixtures(): boolean {

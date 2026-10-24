@@ -16,7 +16,7 @@ const NAV = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const path = usePathname();
-  const { prefs, theme, setTheme, ready, meta } = usePrefs();
+  const { prefs, theme, setTheme, ready, meta, account } = usePrefs();
   const count = prefs.plan.length;
   const shared = path.startsWith("/p/");
 
@@ -50,6 +50,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             </nav>
           )}
           <div className="ml-auto flex items-center gap-3">
+            {!shared && account === null && (
+              <Link href={`/signin?next=${encodeURIComponent(path)}`} className="link whitespace-nowrap text-sm">
+                Sign in
+              </Link>
+            )}
+            {!shared && account && (
+              <Link href="/settings#account" className="link max-w-32 truncate whitespace-nowrap text-sm" title={account.email ?? "Account"}>
+                Account
+              </Link>
+            )}
             {!shared && prefs.area && (
               <Link href="/area" className="link max-w-40 truncate whitespace-nowrap text-sm" title="Change your area">
                 {prefs.area.label}

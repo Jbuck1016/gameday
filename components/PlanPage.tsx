@@ -61,7 +61,7 @@ function WeekView({ items, tz, startDay, onPick, leagueMinutes }: { items: PlanI
 }
 
 export function PlanPage() {
-  const { ready, prefs, update, setPriority, theme: themeId, setTheme, defaultDay, meta } = usePrefs();
+  const { ready, prefs, update, setPriority, theme: themeId, setTheme, defaultDay, meta, account } = usePrefs();
   const tz = prefs.tz;
   const days = useMemo(() => planDays(prefs.plan.map((i) => i.start), tz), [prefs.plan, tz]);
   const [day, setDay] = useState<string | null>(null);
@@ -310,6 +310,15 @@ export function PlanPage() {
           </p>
         )}
       </section>
+
+      {account === null && prefs.plan.length >= 2 && (
+        <p className="text-sm">
+          This plan only lives in this browser.{" "}
+          <Link href="/signin?next=/plan" className="link">
+            Sign in to keep it on every device
+          </Link>
+        </p>
+      )}
 
       <p className="text-sm text-muted">
         Want your teams&apos; games in your calendar, with channels filled in as they&apos;re announced?{" "}

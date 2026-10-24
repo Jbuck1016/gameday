@@ -191,3 +191,45 @@ test.describe("v2: first visit, measurement, calendar feeds", () => {
     expect((await request.get("/cal/nope.ics")).status()).toBe(404);
   });
 });
+
+test.describe("accounts", () => {
+  test("signed out by default, with a way to sign in that never blocks planning", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
+    await expect(page.getByTestId("game-row").first()).toBeVisible();
+    await page.getByRole("link", { name: "Sign in" }).click();
+    await expect(page).toHaveURL(/\/signin\?next=%2F/);
+    await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
+    await expect(page.getByText("You never need an account to plan.", { exact: false })).toBeVisible();
+    await page.screenshot({ path: `${SHOTS}/signin.png` });
+  });
+
+  test("settings shows the account section when signed out", async ({ page }) => {
+    await page.goto("/settings");
+    await expect(page.getByRole("heading", { name: "Account" })).toBeVisible();
+    await expect(page.getByText("Saved in this browser.", { exact: true })).toBeVisible();
+  });
+
+  test("account endpoints refuse anyone not signed in", async ({ request }) => {
+    const me = await request.get("/api/me");
+    expect(await me.json()).toEqual({ user: null, prefs: null });
+    expect((await request.put("/api/me", { data: {} })).status()).toBe(401);
+    expect((await request.delete("/api/me")).status()).toBe(401);
+    expect((await request.post("/api/me/link", { data: { visitor: "abcdefgh12345678" } })).status()).toBe(401);
+  });
+
+  test("auth callback without a code goes back to sign-in, and won't redirect off-site", async ({ page }) => {
+    await page.goto("/auth/callback?next=//evil.example");
+    await expect(page).toHaveURL(/\/signin\?error=missing/);
+    await expect(page.getByRole("alert").filter({ hasText: "didn't finish" })).toBeVisible();
+  });
+
+  test("header fits at phone width with the sign-in link", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/");
+    await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+    await page.screenshot({ path: `${SHOTS}/header-phone.png` });
+  });
+});

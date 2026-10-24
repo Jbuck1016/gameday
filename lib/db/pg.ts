@@ -4,7 +4,7 @@
 import postgres from "postgres";
 import type { DataSource, EventQuery, WatchQuery } from "./source";
 import { randomSlug } from "./source";
-import type { CalendarFeed, EventRow, League, LocalTeam, NewPlan, OptionRow, Service, StoredPlan, Team, ThemeId, TrackedEvent } from "@/lib/types";
+import type { AccountPrefs, CalendarFeed, EventRow, League, LocalTeam, NewPlan, OptionRow, Service, StoredPlan, Team, ThemeId, TrackedEvent } from "@/lib/types";
 
 const PROJECT_REF = "soknxaqllvdpshezjbnw";
 const POOLER_HOSTS = ["aws-0-us-west-2.pooler.supabase.com", "aws-1-us-west-2.pooler.supabase.com"];
@@ -253,12 +253,12 @@ export class PgSource implements DataSource {
     await sql`insert into gameday_site.events ${sql(rows, "visitor", "session", "name", "path", "props", "internal")}`;
   }
 
-  async createFeed(f: Omit<CalendarFeed, "token">, visitor: string | null): Promise<{ token: string }> {
+  async createFeed(f: Omit<CalendarFeed, "token">, visitor: string | null, userId: string | null = null): Promise<{ token: string }> {
     const sql = await getSql();
     const token = randomSlug(20);
     await sql`
-      insert into gameday_site.calendar_feeds (token, team_ids, local_team_ids, services, spanish, label, visitor)
-      values (${token}, ${f.teamIds}::text[], ${f.localTeamIds}::text[], ${f.services}::text[], ${f.spanish}, ${f.label}, ${visitor})`;
+      insert into gameday_site.calendar_feeds (token, team_ids, local_team_ids, services, spanish, label, visitor, user_id)
+      values (${token}, ${f.teamIds}::text[], ${f.localTeamIds}::text[], ${f.services}::text[], ${f.spanish}, ${f.label}, ${visitor}, ${userId})`;
     return { token };
   }
 
@@ -277,5 +277,48 @@ export class PgSource implements DataSource {
       spanish: Boolean(r.spanish),
       label: (r.label as string) ?? null,
     };
+  }
+
+  async getAccountPrefs(userId: string): Promise<{ prefs: AccountPrefs; updatedAt: string } | null> {
+    const sql = await getSql();
+    const [r] = await sql`
+      select area, local_teams, services, spanish, theme, tz, plan, updated_at
+      from gameday_site.user_prefs where user_id = ${userId}`;
+    if (!r) return null;
+    return {
+      prefs: {
+        area: (r.area as AccountPrefs["area"]) ?? null,
+        localTeams: (r.local_teams as AccountPrefs["localTeams"]) ?? [],
+        services: (r.services as string[]) ?? [],
+        spanish: Boolean(r.spanish),
+        theme: r.theme as ThemeId,
+        tz: String(r.tz),
+        plan: (r.plan as AccountPrefs["plan"]) ?? [],
+      },
+      updatedAt: iso(r.updated_at),
+    };
+  }
+
+  async saveAccountPrefs(userId: string, p: AccountPrefs): Promise<string> {
+    const sql = await getSql();
+    const [r] = await sql`
+      insert into gameday_site.user_prefs (user_id, area, local_teams, services, spanish, theme, tz, plan, updated_at)
+      values (${userId}, ${p.area ? sql.json(p.area) : null}, ${sql.json(p.localTeams)}, ${p.services}::text[], ${p.spanish},
+              ${p.theme}, ${p.tz}, ${sql.json(p.plan)}, now())
+      on conflict (user_id) do update set
+        area = excluded.area, local_teams = excluded.local_teams, services = excluded.services,
+        spanish = excluded.spanish, theme = excluded.theme, tz = excluded.tz, plan = excluded.plan, updated_at = now()
+      returning updated_at`;
+    return iso(r.updated_at);
+  }
+
+  async linkVisitor(userId: string, visitor: string): Promise<void> {
+    const sql = await getSql();
+    await sql`insert into gameday_site.user_visitors (user_id, visitor) values (${userId}, ${visitor}) on conflict do nothing`;
+  }
+
+  async deleteAccount(userId: string): Promise<void> {
+    const sql = await getSql();
+    await sql`select gameday_site.delete_account(${userId}::uuid)`;
   }
 }

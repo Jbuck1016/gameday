@@ -175,3 +175,14 @@ export type CalendarFeed = {
   spanish: boolean;
   label: string | null;
 };
+
+/** Settings and plan saved to a signed-in visitor's account (same shape the browser keeps). */
+export type AccountPrefs = {
+  area: { label: string; source: "ip" | "zip"; zip: string | null; confirmed: boolean } | null;
+  localTeams: { id: string; name: string; leagueId: string }[];
+  services: string[];
+  spanish: boolean;
+  theme: ThemeId;
+  tz: string;
+  plan: PlanItem[];
+};

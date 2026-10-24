@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSource } from "@/lib/db/source";
 import { bad, idList, serverError } from "@/lib/server/http";
+import { currentUser } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,9 +29,11 @@ export async function POST(req: Request) {
   const b = parsed.data;
   try {
     const src = await getSource();
+    const user = await currentUser();
     const { token } = await src.createFeed(
       { teamIds: b.teamIds, localTeamIds: b.localTeamIds, services: b.services, spanish: b.spanish, label: b.label },
       b.visitor ?? null,
+      user?.id ?? null,
     );
     return NextResponse.json({ token, path: `/cal/${token}.ics` });
   } catch (e) {

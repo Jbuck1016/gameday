@@ -74,7 +74,18 @@ export default function AboutPage() {
       </Section>
 
       <Section title="Privacy">
-        <p>No account and no tracking of who you are. Your settings and plan stay in your browser. Shared plans are saved only when you share them.</p>
+        <p>
+          You don&apos;t need an account. Without one, your settings and plan stay in your browser, and a plan is saved on our side only when you
+          share it.
+        </p>
+        <p>
+          If you sign in (Google, or an email link), we store your email and the settings and plans you save, so they follow you between devices.
+          You can delete your account from Settings at any time.
+        </p>
+        <p>
+          To see whether the site is useful, it counts visits and actions (for example, adding a game or exporting a card) against a random ID
+          kept in your browser. It doesn&apos;t record your name, email or IP address with those counts, and nothing is sold or shared.
+        </p>
       </Section>
     </article>
   );

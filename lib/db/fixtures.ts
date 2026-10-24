@@ -4,7 +4,7 @@
 
 import type { DataSource, EventQuery, WatchQuery } from "./source";
 import { randomSlug } from "./source";
-import type { CalendarFeed, EventRow, League, LocalTeam, NewPlan, OptionRow, Service, StoredPlan, Team, TrackedEvent } from "@/lib/types";
+import type { AccountPrefs, CalendarFeed, EventRow, League, LocalTeam, NewPlan, OptionRow, Service, StoredPlan, Team, TrackedEvent } from "@/lib/types";
 import fixture from "@/fixtures/weekend-2026-10-24.json";
 
 type Fixture = {
@@ -32,6 +32,7 @@ function haversineKm(aLat: number, aLon: number, bLat: number, bLon: number): nu
 
 const plans = new Map<string, StoredPlan>();
 const feeds = new Map<string, CalendarFeed>();
+const accounts = new Map<string, { prefs: AccountPrefs; updatedAt: string }>();
 export const fixtureEvents: TrackedEvent[] = [];
 
 export class FixtureSource implements DataSource {
@@ -134,6 +135,18 @@ export class FixtureSource implements DataSource {
   }
   async getFeed(token: string): Promise<CalendarFeed | null> {
     return feeds.get(token) ?? null;
+  }
+  async getAccountPrefs(userId: string): Promise<{ prefs: AccountPrefs; updatedAt: string } | null> {
+    return accounts.get(userId) ?? null;
+  }
+  async saveAccountPrefs(userId: string, p: AccountPrefs): Promise<string> {
+    const updatedAt = new Date().toISOString();
+    accounts.set(userId, { prefs: p, updatedAt });
+    return updatedAt;
+  }
+  async linkVisitor(): Promise<void> {}
+  async deleteAccount(userId: string): Promise<void> {
+    accounts.delete(userId);
   }
 }
 

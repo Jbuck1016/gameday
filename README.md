@@ -40,7 +40,7 @@ With no database credentials the app runs on a bundled snapshot of the weekend o
 | `NEXT_PUBLIC_EMAIL_SIGNIN` | `1` to show email-link sign-in (needs custom SMTP in Supabase Auth) |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Optional overrides for sign-in; defaults point at the project |
 
-The `gameday_web` role can read listings and write shared plans and zip lookups. Nothing else.
+The `gameday_web` role can read listings, write shared plans, zip lookups, usage events and calendar feeds, read and write signed-in users' saved settings, and call one account-deletion function. Nothing else, and nothing in Partner Ledger's tables.
 
 ## Tests
 

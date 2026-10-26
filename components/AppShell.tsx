@@ -92,9 +92,14 @@ export function AppShell({ children }: { children: ReactNode }) {
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-5xl flex-wrap justify-between gap-2 px-4 py-4 text-xs text-muted">
           <span>Listings refresh every few hours. End times are estimates.</span>
-          <Link href="/about" className="link">
-            How it works
-          </Link>
+          <span className="flex gap-4">
+            <Link href="/about" className="link">
+              How it works
+            </Link>
+            <Link href="/privacy" className="link">
+              Privacy
+            </Link>
+          </span>
         </div>
       </footer>
     </div>

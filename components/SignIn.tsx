@@ -118,7 +118,10 @@ export function SignIn() {
       </div>
 
       <p className="text-xs text-muted">
-        We store your email and the settings and plans you save. Nothing is shared or sold, and you can delete your account in Settings.
+        We store your email and the settings and plans you save. Nothing is shared or sold, and you can delete your account in Settings.{" "}
+        <Link href="/privacy" className="link">
+          Privacy policy
+        </Link>
       </p>
     </div>
   );

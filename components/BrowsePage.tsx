@@ -209,7 +209,22 @@ export function BrowsePage() {
       )}
       {games !== null && visible.length === 0 && (
         <p className="py-10 text-center text-sm text-muted">
-          {filter === "live" ? "Nothing is on right now." : filter === "mine" ? "None of your teams play on this day." : "No games match. Try another day or clear the filters."}
+          {filter === "live"
+            ? "Nothing is on right now."
+            : filter === "mine"
+              ? "None of your teams play on this day."
+              : filter === "best" && isToday
+                ? "Today's games are done."
+                : "No games match. Try another day or clear the filters."}
+          {filter === "best" && isToday && day ? (
+            <>
+              {" "}
+              <button type="button" className="link" onClick={() => pickDay(addDays(day, 1))}>
+                See tomorrow&apos;s best
+              </button>
+              {" · "}
+            </>
+          ) : null}
           {filter !== "all" ? (
             <>
               {" "}

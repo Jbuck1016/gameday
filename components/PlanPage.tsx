@@ -263,7 +263,7 @@ export function PlanPage() {
           days={days}
           onDay={setDay}
           tz={tz}
-          themeId={themeId}
+          themeId={SITE_THEME}
           myServices={prefs.services}
           areaLabel={prefs.area?.label ?? null}
           live={live}

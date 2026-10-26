@@ -1,21 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
-import "@fontsource/anton/400.css";
-import "@fontsource/barlow-condensed/600.css";
-import "@fontsource/barlow-condensed/700.css";
-import "@fontsource/barlow/400.css";
-import "@fontsource/barlow/500.css";
-import "@fontsource/barlow/600.css";
-import "@fontsource/newsreader/400.css";
-import "@fontsource/newsreader/400-italic.css";
-import "@fontsource/newsreader/600.css";
-import "@fontsource/public-sans/400.css";
-import "@fontsource/public-sans/600.css";
-import "@fontsource/public-sans/700.css";
-import "@fontsource/jetbrains-mono/400.css";
-import "@fontsource/jetbrains-mono/500.css";
-import "@fontsource/jetbrains-mono/700.css";
-import "@fontsource/jetbrains-mono/800.css";
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
+import "@fontsource/inter/800.css";
 import "./globals.css";
 import { PrefsProvider } from "@/lib/prefs";
 import { AppShell } from "@/components/AppShell";
@@ -35,16 +24,17 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
-// theme is applied before paint from localStorage to avoid a flash of the default skin
-const themeBoot = `try{var t=new URLSearchParams(location.search).get('theme');if(!t){var p=JSON.parse(localStorage.getItem('gameday:v1')||'{}');t=p.theme}if(['broadcast','editorial','terminal'].indexOf(t)>=0)document.documentElement.dataset.theme=t}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="broadcast" suppressHydrationWarning>
+    <html lang="en">
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
+        <meta name="theme-color" content="#ffffff" />
       </head>
       <body>
+        <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-ground focus:px-3 focus:py-2">
+          Skip to content
+        </a>
         <PrefsProvider>
           <AppShell>{children}</AppShell>
         </PrefsProvider>

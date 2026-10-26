@@ -12,7 +12,7 @@ const Body = z.object({
   dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   timezone: z.string().max(64).refine(isValidTimezone),
-  theme: z.enum(["broadcast", "editorial", "terminal"]),
+  theme: z.enum(["daylight", "broadcast", "editorial", "terminal"]),
   areaLabel: z.string().max(80).nullable().optional(),
   localTeamIds: idList.max(20),
   services: z.array(z.string().regex(/^[a-z0-9_]+$/)).max(30),

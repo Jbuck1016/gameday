@@ -19,7 +19,7 @@ export const AccountPrefsSchema = z.object({
   localTeams: z.array(TeamPref).max(30),
   services: z.array(z.string().regex(/^[a-z0-9_]+$/)).max(30),
   spanish: z.boolean(),
-  theme: z.enum(["broadcast", "editorial", "terminal"]),
+  theme: z.enum(["daylight", "broadcast", "editorial", "terminal"]),
   tz: z.string().max(64).refine(isValidTimezone),
   plan: z.array(PlanItem).max(300),
 });

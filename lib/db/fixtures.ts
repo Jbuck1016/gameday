@@ -168,7 +168,7 @@ export function demoPlan(): StoredPlan {
     dateFrom: FIXTURE_DAY,
     dateTo: FIXTURE_DAY,
     timezone: "America/Los_Angeles",
-    theme: "broadcast",
+    theme: "daylight",
     areaLabel: FIXTURE_LA.label,
     localTeamIds: F.local_team_ids,
     services: ["youtube_tv", "peacock", "espn_plus"],

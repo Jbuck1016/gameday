@@ -10,7 +10,7 @@ import { watchableServices, matchupLabel } from "@/lib/games";
 import { formatDayLabel } from "@/lib/time";
 import { Timeline } from "./Timeline";
 import { WatchList } from "./WatchList";
-import { PriorityButtons, TeamMark } from "./GameRow";
+import { PickButton, Matchup } from "./GameRow";
 
 type Props = {
   games: Game[];
@@ -59,8 +59,8 @@ function MultiviewPanel({
         const shown = w.gameIds.slice(0, 4);
         return (
           <li key={w.from}>
-            <p className="label text-sm text-accent">
-              {theme.formatTime(w.from, model.tz)}–{theme.formatTime(w.to, model.tz)} · {w.gameIds.length} games
+            <p className="text-sm font-semibold">
+              {theme.formatTime(w.from, model.tz)} to {theme.formatTime(w.to, model.tz)} · {w.gameIds.length} games
             </p>
             <p className="mt-1 text-sm">
               {w.verdict === "single_service" &&
@@ -126,20 +126,19 @@ export function PlanView(p: Props) {
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="label text-sm text-accent">My game day{p.areaLabel ? ` · ${p.areaLabel}` : ""}</p>
-          <h1 className="display text-4xl sm:text-6xl">{formatDayLabel(p.day)}</h1>
-        </div>
-        <p className="label text-sm text-muted">
-          {musts} must · {model.games.length - musts} want{model.peak > 1 ? ` · up to ${model.peak} screens` : ""}
+      <header>
+        <h1 className="display text-3xl">{formatDayLabel(p.day)}</h1>
+        <p className="mt-1 text-sm text-muted">
+          {model.games.length} {model.games.length === 1 ? "game" : "games"} · {musts} must
+          {model.overlaps.length ? ` · ${model.overlaps.length} ${model.overlaps.length === 1 ? "clash" : "clashes"}` : ""}
+          {p.areaLabel ? ` · ${p.areaLabel}` : ""}
         </p>
       </header>
 
       {p.days.length > 1 && (
         <nav aria-label="Plan days" className="flex flex-wrap gap-1.5">
           {p.days.map((d) => (
-            <button key={d} type="button" className="btn min-h-9 text-xs" aria-pressed={d === p.day} onClick={() => p.onDay?.(d)}>
+            <button key={d} type="button" className="btn h-9 min-h-9 px-3 text-xs" aria-pressed={d === p.day} onClick={() => p.onDay?.(d)}>
               {formatDayLabel(d, "short")}
             </button>
           ))}
@@ -147,7 +146,7 @@ export function PlanView(p: Props) {
       )}
 
       {model.games.length === 0 ? (
-        <p className="panel p-6 text-muted">Nothing planned for this day yet.</p>
+        <p className="panel p-6 text-sm text-muted">Nothing planned for this day yet.</p>
       ) : (
         <Timeline model={model} theme={theme} />
       )}
@@ -161,20 +160,19 @@ export function PlanView(p: Props) {
             const g = d.game;
             return (
               <li key={g.id} className="py-4" data-testid="plan-game">
-                <div className="flex flex-wrap items-start gap-x-5 gap-y-3">
-                  <div className="w-24 shrink-0">
-                    <div className="display text-2xl">{g.timeValid ? theme.formatTime(d.start, p.tz) : "TBC"}</div>
-                    <div className="label text-xs text-muted">
-                      to ~{theme.formatTime(d.end, p.tz)}
-                      {d.runningLong ? " · running long" : ""}
+                <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
+                  <div className="w-14 shrink-0">
+                    <div className="text-[15px] font-bold">{g.timeValid ? theme.formatTime(d.start, p.tz).replace(/ (AM|PM)$/, "") : "TBC"}</div>
+                    <div className="text-[11px] font-medium text-muted">
+                      to ~{theme.formatTime(d.end, p.tz).replace(/ (AM|PM)$/, "")}
+                      {d.runningLong ? " · long" : ""}
                     </div>
-                    {p.live?.get(g.id) === "in" && <div className="label mt-1 text-xs text-accent">Live</div>}
+                    {p.live?.get(g.id) === "in" && <div className="chip chip-good mt-1">Live</div>}
                   </div>
                   <div className="min-w-0 flex-1 basis-64">
                     <div className="flex flex-wrap items-center gap-2">
-                      <TeamMark logo={(g.sport === "soccer" ? g.home : g.away)?.logo} abbr={(g.sport === "soccer" ? g.home : g.away)?.abbr ?? ""} />
-                      <span className="display text-xl">{matchupLabel(g)}</span>
-                      <span className={`chip ${d.priority === "must" ? "" : "dashed"}`}>{d.priority === "must" ? "Must watch" : "Want to watch"}</span>
+                      <Matchup game={g} />
+                      <span className={`chip ${d.priority === "must" ? "bg-ink text-ground" : ""}`}>{d.priority === "must" ? "Must" : "Want"}</span>
                     </div>
                     <p className="mt-0.5 text-sm text-muted">{[g.leagueName, g.venue].filter(Boolean).join(" · ")}</p>
                     {!g.timeValid && <p className="mt-0.5 text-sm text-muted">Kickoff time not confirmed yet.</p>}
@@ -183,9 +181,7 @@ export function PlanView(p: Props) {
                     </div>
                   </div>
                   {!p.readOnly && p.onPriority && (
-                    <div className="flex flex-col items-end gap-2">
-                      <PriorityButtons game={g} priority={d.priority} onChange={(pr) => p.onPriority!(g, pr)} />
-                    </div>
+                    <PickButton game={g} priority={d.priority} onChange={(pr) => p.onPriority!(g, pr)} />
                   )}
                 </div>
               </li>
@@ -196,8 +192,8 @@ export function PlanView(p: Props) {
 
       {model.games.length > 0 && (
         <section aria-labelledby="svc-h" className="panel p-4">
-          <h2 id="svc-h" className="label text-sm text-accent">
-            Services needed
+          <h2 id="svc-h" className="text-[11px] font-semibold tracking-wide text-muted">
+            YOU NEED
           </h2>
           {model.cover.chosen.length ? (
             <ul className="mt-2 flex flex-wrap gap-1.5">

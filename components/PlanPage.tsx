@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePrefs, gamesQuery, type Prefs } from "@/lib/prefs";
 import type { Game, PlanItem, Priority } from "@/lib/types";
-import { THEMES, THEME_IDS, barStyle } from "@/lib/themes";
+import { THEMES, THEME_IDS, SITE_THEME, barStyle } from "@/lib/themes";
 import { addDays, dateKey, formatDayLabel, localDayRange, minutesIntoDay } from "@/lib/time";
 import { planDays } from "@/lib/plan";
 import { PlanView } from "./PlanView";
@@ -25,8 +25,7 @@ function signature(p: Prefs): string {
 }
 
 function WeekView({ items, tz, startDay, onPick, leagueMinutes }: { items: PlanItem[]; tz: string; startDay: string; onPick: (d: string) => void; leagueMinutes: Map<string, number> }) {
-  const { theme: themeId } = usePrefs();
-  const theme = THEMES[themeId];
+  const theme = THEMES[SITE_THEME];
   const days = Array.from({ length: 7 }, (_, i) => addDays(startDay, i));
   return (
     <ul className="space-y-2" aria-label="Week view">
@@ -63,6 +62,7 @@ function WeekView({ items, tz, startDay, onPick, leagueMinutes }: { items: PlanI
 export function PlanPage() {
   const { ready, prefs, update, setPriority, theme: themeId, setTheme, defaultDay, meta, account } = usePrefs();
   const tz = prefs.tz;
+  const [shareOpen, setShareOpen] = useState(false);
   const days = useMemo(() => planDays(prefs.plan.map((i) => i.start), tz), [prefs.plan, tz]);
   const [day, setDay] = useState<string | null>(null);
   const [tab, setTab] = useState<"day" | "week">("day");
@@ -205,10 +205,8 @@ export function PlanPage() {
   if (!prefs.plan.length) {
     return (
       <div className="panel p-8 text-center">
-        <h1 className="display text-3xl">Your plan is empty</h1>
-        <p className="mt-2 text-muted">
-          Mark games Must or Want while you browse, or start from the day&apos;s best games and take out what you don&apos;t want.
-        </p>
+        <h1 className="display text-2xl">Nothing planned yet</h1>
+        <p className="mt-2 text-sm text-muted">Tap the circle on any game to add it, or start from today&apos;s best and take out what you don&apos;t want.</p>
         <Link href="/" className="btn btn-primary mt-6 no-underline">
           See today&apos;s best
         </Link>
@@ -217,25 +215,30 @@ export function PlanPage() {
   }
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-6 pb-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex" role="group" aria-label="Plan view">
-          <button type="button" className="btn" aria-pressed={tab === "day"} onClick={() => setTab("day")}>
+        <div className="flex gap-1" role="group" aria-label="Plan view">
+          <button type="button" className="btn h-9 min-h-9 px-3.5 text-[13px]" aria-pressed={tab === "day"} onClick={() => setTab("day")}>
             Day
           </button>
-          <button type="button" className="btn" aria-pressed={tab === "week"} onClick={() => setTab("week")}>
+          <button type="button" className="btn h-9 min-h-9 px-3.5 text-[13px]" aria-pressed={tab === "week"} onClick={() => setTab("week")}>
             Week
           </button>
         </div>
-        <button
-          type="button"
-          className="link text-sm"
-          onClick={() => {
-            if (window.confirm("Clear every game from your plan?")) update((p) => ({ ...p, plan: [], shared: null }));
-          }}
-        >
-          Clear plan
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="link text-sm"
+            onClick={() => {
+              if (window.confirm("Clear every game from your plan?")) update((p) => ({ ...p, plan: [], shared: null }));
+            }}
+          >
+            Clear
+          </button>
+          <button type="button" className="btn btn-primary h-10 min-h-10" aria-expanded={shareOpen} aria-controls="share-panel" onClick={() => setShareOpen((o) => !o)}>
+            Share
+          </button>
+        </div>
       </div>
 
       {tab === "week" && day && (
@@ -269,8 +272,9 @@ export function PlanPage() {
         />
       )}
 
-      <section aria-labelledby="share-h" className="panel space-y-4 p-4">
-        <h2 id="share-h" className="label text-sm text-accent">
+      {shareOpen && (
+      <section id="share-panel" aria-labelledby="share-h" className="panel space-y-4 p-4">
+        <h2 id="share-h" className="label text-sm">
           Share this day
         </h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -310,6 +314,7 @@ export function PlanPage() {
           </p>
         )}
       </section>
+      )}
 
       {account === null && prefs.plan.length >= 2 && (
         <p className="text-sm">

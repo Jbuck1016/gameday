@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePrefs, type LocalTeamPref } from "@/lib/prefs";
 import type { Game } from "@/lib/types";
-import { THEMES } from "@/lib/themes";
+import { THEMES, SITE_THEME } from "@/lib/themes";
 import { dateKey, formatDayLabel } from "@/lib/time";
 import { overlaps } from "@/lib/schedule/overlap";
 import { matchupLabel } from "@/lib/games";
@@ -12,8 +12,8 @@ import { CalendarSubscribe } from "@/components/CalendarSubscribe";
 import { track } from "@/lib/track";
 
 export default function TeamsPage() {
-  const { prefs, theme: themeId, setPriority, priorityOf } = usePrefs();
-  const theme = THEMES[themeId];
+  const { prefs, setPriority, priorityOf } = usePrefs();
+  const theme = THEMES[SITE_THEME];
   const tz = prefs.tz;
   const [teams, setTeams] = useState<LocalTeamPref[]>([]);
   const [days, setDays] = useState(30);

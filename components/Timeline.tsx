@@ -9,6 +9,7 @@ function hourLabel(theme: Theme, h: number): string {
   const hh = h % 24;
   if (theme.id === "terminal") return String(hh).padStart(2, "0");
   const h12 = hh % 12 === 0 ? 12 : hh % 12;
+  if (theme.id === "daylight") return hh === 0 ? "12am" : hh === 12 ? "12pm" : h12 % 2 === 0 || hh < 12 ? `${h12}${hh < 12 ? "am" : "pm"}` : `${h12}`;
   if (theme.id === "editorial") return hh === 12 ? "noon" : `${h12}${hh < 12 ? "am" : "pm"}`;
   return `${h12}${hh < 12 ? "A" : "P"}`;
 }
@@ -48,7 +49,7 @@ export function Timeline({ model, theme, compact = false }: { model: DayModel; t
               <span className={`label truncate pr-2 text-sm ${compact ? "w-16 shrink-0 text-xs" : "w-24 shrink-0 sm:w-32"}`} title={d.game.name}>
                 {label}
               </span>
-              <span className={`relative flex-1 ${compact ? "h-4" : "h-7"} ${theme.id === "broadcast" ? "bg-[#0E1626]" : ""}`}>
+              <span className={`relative flex-1 rounded-lg ${compact ? "h-4" : "h-7"} ${theme.id === "broadcast" ? "bg-[#0E1626]" : theme.id === "daylight" ? "bg-ground" : ""}`}>
                 {hours.map((h) => (
                   <span
                     key={h}
@@ -67,6 +68,7 @@ export function Timeline({ model, theme, compact = false }: { model: DayModel; t
                     border: bs.border,
                     backgroundImage: bs.backgroundImage,
                     boxSizing: "border-box",
+                    borderRadius: theme.id === "daylight" ? 6 : 0,
                   }}
                   title={`${theme.formatTime(d.start, model.tz)} to about ${theme.formatTime(d.end, model.tz)}${d.runningLong ? " (running long)" : ""}`}
                 />
@@ -83,10 +85,11 @@ export function Timeline({ model, theme, compact = false }: { model: DayModel; t
         <p className="mt-2 text-right text-xs text-muted">Now: {theme.formatTime(now, model.tz)}</p>
       )}
       {!compact && model.overlaps.length > 0 && (
-        <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-1 pl-24 sm:pl-32">
+        <ul className="mt-3 space-y-1.5">
           {model.overlaps.map((o) => (
-            <li key={o.from} className="label text-sm text-accent">
-              Overlap {theme.formatTime(o.from, model.tz)}–{theme.formatTime(o.to, model.tz)} · {o.ids.length} screens
+            <li key={o.from} className="flex items-center gap-2 rounded-xl bg-warn-bg px-3 py-2 text-sm font-medium text-warn">
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M12 4v16M3 12h18" /></svg>
+              {theme.formatTime(o.from, model.tz)} to {theme.formatTime(o.to, model.tz)} clash: {o.ids.length} screens
             </li>
           ))}
         </ul>

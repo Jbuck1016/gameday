@@ -121,3 +121,13 @@ export function isValidTimezone(tz: string): boolean {
     return false;
   }
 }
+
+/** "Saturday" and "24 Oct" as two parts, for a big day header. */
+export function dayParts(key: string): { weekday: string; date: string } {
+  const { y, m, d } = parseDateKey(key);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return {
+    weekday: new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "UTC" }).format(dt),
+    date: new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }).format(dt),
+  };
+}

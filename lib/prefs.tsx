@@ -38,7 +38,7 @@ const DEFAULTS: Prefs = {
   localTeams: [],
   services: [],
   spanish: false,
-  theme: "broadcast",
+  theme: "daylight",
   tz: "America/Los_Angeles",
   plan: [],
   shared: null,
@@ -51,7 +51,7 @@ function load(): Prefs {
   try {
     const raw = window.localStorage.getItem(KEY);
     const parsed = raw ? (JSON.parse(raw) as Partial<Prefs>) : {};
-    return { ...DEFAULTS, tz: guessTimezone(), ...parsed, theme: isThemeId(parsed.theme) ? parsed.theme : "broadcast" };
+    return { ...DEFAULTS, tz: guessTimezone(), ...parsed, theme: isThemeId(parsed.theme) ? parsed.theme : "daylight" };
   } catch {
     return { ...DEFAULTS, tz: guessTimezone() };
   }
@@ -199,10 +199,8 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
       });
   }, []);
 
+  // the card look; the site itself has one look
   const theme = themeOverride ?? prefs.theme;
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-  }, [theme]);
 
   const update = useCallback(
     (fn: (p: Prefs) => Prefs) => {

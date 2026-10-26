@@ -44,44 +44,41 @@ export function useAutoArea() {
   return state;
 }
 
+/** One quiet line under the day header: where listings are for, and a way to confirm or change it. */
 export function AreaBanner() {
   const { prefs, update } = usePrefs();
   const auto = useAutoArea();
   if (!prefs.area) {
-    if (auto === "loading") return <div className="panel mb-6 p-4 text-sm text-muted">Finding your area…</div>;
+    if (auto === "loading") return <p className="text-sm text-muted">Finding your area…</p>;
     return (
-      <div className="panel mb-6 flex flex-wrap items-center justify-between gap-3 p-4">
-        <p className="text-sm">Set your area so channels, local teams and blackouts match where you watch.</p>
-        <a href="/area" className="btn btn-primary no-underline">
+      <p className="text-sm text-muted">
+        Channels depend on where you watch.{" "}
+        <a href="/area" className="link">
           Set your area
         </a>
-      </div>
+      </p>
     );
   }
   if (prefs.area.confirmed) return null;
+  const teams = prefs.localTeams.map((t) => t.name.replace(/^(Los Angeles|LA) /, "")).join(", ");
   return (
-    <div className="panel mb-6 p-4" role="region" aria-label="Your area">
-      <p className="label text-sm text-accent">Showing listings for {prefs.area.label}</p>
-      <p className="mt-1 text-sm">
-        {prefs.localTeams.length
-          ? `Your local teams: ${prefs.localTeams.map((t) => t.name).join(", ")}.`
-          : "No pro teams nearby, so every game uses national listings."}
-      </p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => {
-            update((p) => ({ ...p, area: p.area ? { ...p.area, confirmed: true } : p.area }));
-            track("area_confirmed", { teams: prefs.localTeams.length });
-          }}
-        >
-          Looks right
-        </button>
-        <a href="/area" className="btn no-underline">
-          Change
-        </a>
-      </div>
-    </div>
+    <p className="text-sm text-muted" role="region" aria-label="Your area">
+      Listings for {prefs.area.label}
+      {teams ? `, local teams ${teams}` : ", no local teams nearby"}.{" "}
+      <button
+        type="button"
+        className="link"
+        onClick={() => {
+          update((p) => ({ ...p, area: p.area ? { ...p.area, confirmed: true } : p.area }));
+          track("area_confirmed", { teams: prefs.localTeams.length });
+        }}
+      >
+        Looks right
+      </button>
+      {" · "}
+      <a href="/area" className="link">
+        Change
+      </a>
+    </p>
   );
 }

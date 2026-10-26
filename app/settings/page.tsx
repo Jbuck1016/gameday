@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
-import { THEMES, THEME_IDS } from "@/lib/themes";
 import { AccountSection } from "@/components/AccountSection";
 
 const GROUPS: { title: string; kinds: string[] }[] = [
@@ -16,7 +15,7 @@ const GROUPS: { title: string; kinds: string[] }[] = [
 const HIDE = new Set(["clippervision_app", "spectrum_sportsnet_plus", "dazn"]);
 
 export default function SettingsPage() {
-  const { prefs, update, meta, theme, setTheme, account } = usePrefs();
+  const { prefs, update, meta, account } = usePrefs();
   const services = (meta?.services ?? []).filter((s) => !HIDE.has(s.id));
   const toggle = (id: string) =>
     update((p) => ({ ...p, services: p.services.includes(id) ? p.services.filter((s) => s !== id) : [...p.services, id] }));
@@ -77,19 +76,6 @@ export default function SettingsPage() {
           Show Telemundo, Universo, ESPN Deportes and other Spanish-language channels
         </label>
         <p className="text-sm text-muted">They always show when they&apos;re the only way to watch a game.</p>
-      </section>
-
-      <section aria-labelledby="theme-h">
-        <h2 id="theme-h" className="label text-sm text-muted">
-          Look
-        </h2>
-        <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Theme">
-          {THEME_IDS.map((t) => (
-            <button key={t} type="button" className="btn" aria-pressed={theme === t} onClick={() => setTheme(t)}>
-              {THEMES[t].label}
-            </button>
-          ))}
-        </div>
       </section>
 
       <section aria-labelledby="tz-h">

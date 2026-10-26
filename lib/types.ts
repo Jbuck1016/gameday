@@ -124,7 +124,7 @@ export type PlanItem = {
   name: string;
 };
 
-export type ThemeId = "broadcast" | "editorial" | "terminal";
+export type ThemeId = "daylight" | "broadcast" | "editorial" | "terminal";
 
 export type NewPlan = {
   title: string | null;

@@ -9,31 +9,39 @@ test.describe("first visit to an exported card", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/");
     // area is detected (demo data uses Los Angeles) and needs confirming
-    await expect(page.getByText(/Showing listings for Los Angeles/)).toBeVisible();
+    await expect(page.getByText(/Listings for Los Angeles/)).toBeVisible();
     await page.getByRole("button", { name: "Looks right" }).click();
 
     const rows = page.getByTestId("game-row");
     await expect(rows.first()).toBeVisible();
-    await page.screenshot({ path: `${SHOTS}/browse-broadcast.png`, fullPage: false });
+    await page.screenshot({ path: `${SHOTS}/browse-best.png`, fullPage: false });
+    await page.getByRole("tab", { name: "All" }).click();
+    await page.screenshot({ path: `${SHOTS}/browse-all.png`, fullPage: false });
 
+    // tap once = want, twice = must
     const arsenal = page.locator('[data-testid="game-row"]', { hasText: "Arsenal" }).first();
-    await arsenal.getByRole("button", { name: /Must watch/ }).click();
+    await arsenal.getByRole("button", { name: /^Add .* to plan$/ }).click();
+    await arsenal.getByRole("button", { name: /want to watch\. Tap for must/ }).click();
+    await expect(arsenal.locator('[data-priority="must"]')).toHaveCount(1);
     const cfb = page.locator('[data-testid="game-row"]', { hasText: "Michigan" }).first();
-    await cfb.getByRole("button", { name: /Must watch/ }).click();
+    await cfb.getByRole("button", { name: /^Add .* to plan$/ }).click();
+    await cfb.getByRole("button", { name: /Tap for must/ }).click();
     const dortmund = page.locator('[data-testid="game-row"]', { hasText: "Dortmund" }).first();
-    await dortmund.getByRole("button", { name: /Want to watch/ }).click();
+    await dortmund.getByRole("button", { name: /^Add .* to plan$/ }).click();
 
-    await arsenal.getByRole("button", { name: "Where" }).click();
+    // tapping the game itself shows every way to watch
+    await arsenal.getByRole("button", { name: /Arsenal/, expanded: false }).click();
     await expect(arsenal.getByText("Likely, not announced").first()).toBeVisible();
 
-    await page.getByRole("link", { name: "View plan" }).click();
+    await page.getByRole("link", { name: /Your day · 3 games/ }).click();
     await expect(page.getByTestId("plan-game")).toHaveCount(3);
     await expect(page.getByRole("figure", { name: /Timeline/ })).toBeVisible();
-    await expect(page.getByText(/Overlap/).first()).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Services needed" })).toBeVisible();
-    await page.screenshot({ path: `${SHOTS}/plan-broadcast.png`, fullPage: true });
+    await expect(page.getByText(/clash/).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "YOU NEED" })).toBeVisible();
+    await page.screenshot({ path: `${SHOTS}/plan.png`, fullPage: true });
 
     // share link creates a stored plan and the shared page renders it
+    await page.getByRole("button", { name: "Share" }).click();
     await page.getByRole("button", { name: "Copy link" }).click();
     const status = page.getByRole("status");
     await expect(status).toContainText("/p/");
@@ -41,21 +49,19 @@ test.describe("first visit to an exported card", () => {
 
     // export uses the same stored plan
     const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Export image" }).click()]);
-    expect(download.suggestedFilename()).toMatch(/gameday-2026-10-24-broadcast\.png/);
+    expect(download.suggestedFilename()).toMatch(/gameday-2026-10-24-daylight\.png/);
 
     await page.goto(link);
     await expect(page.getByTestId("plan-game")).toHaveCount(3);
     await expect(page.getByRole("link", { name: "Make my plan" })).toBeVisible();
   });
 
-  test("themes switch the whole app", async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 900 });
-    for (const t of ["editorial", "terminal"]) {
-      await page.goto(`/?theme=${t}`);
-      await expect(page.locator("html")).toHaveAttribute("data-theme", t);
-      await expect(page.getByTestId("game-row").first()).toBeVisible();
-      await page.screenshot({ path: `${SHOTS}/browse-${t}.png` });
-    }
+  test("filters are in the URL and the site has one look", async ({ page }) => {
+    await page.goto("/?show=mine");
+    await expect(page.getByRole("tab", { name: "My teams", selected: true })).toBeVisible();
+    await expect(page.getByTestId("game-row").first()).toContainText("Your team");
+    await page.goto("/?theme=terminal");
+    await expect(page.locator("html")).not.toHaveAttribute("data-theme");
   });
 
   test("works at phone width with no sideways scroll", async ({ page }) => {
@@ -70,7 +76,7 @@ test.describe("first visit to an exported card", () => {
 
 test.describe("api", () => {
   test("card renders in every theme and size", async ({ request }) => {
-    for (const theme of ["broadcast", "editorial", "terminal"]) {
+    for (const theme of ["daylight", "broadcast", "editorial", "terminal"]) {
       for (const size of ["portrait", "story", "square"]) {
         const res = await request.get(`/api/card?plan=demo&theme=${theme}&size=${size}`);
         expect(res.status()).toBe(200);
@@ -118,26 +124,29 @@ test.describe("v2: first visit, measurement, calendar feeds", () => {
     await page.goto("/");
     const best = page.getByTestId("best-today");
     await expect(best).toBeVisible();
-    const n = await best.getByTestId("best-game").count();
+    const n = await best.getByTestId("game-row").count();
     expect(n).toBeGreaterThanOrEqual(4);
     await expect(best.getByText("Your team").first()).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/best-today.png` });
-    await best.getByRole("button", { name: /Plan these/ }).click();
+    await page.getByRole("button", { name: /Plan these/ }).click();
     await expect(page).toHaveURL(/\/plan\?day=2026-10-24/);
     await expect(page.getByTestId("plan-game")).toHaveCount(n);
     await page.screenshot({ path: `${SHOTS}/best-planned.png`, fullPage: true });
   });
 
-  test("best games panel hides while searching or filtering", async ({ page }) => {
+  test("All shows every game with search and league filters", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByTestId("best-today")).toBeVisible();
-    await page.getByPlaceholder("Search a team or league").fill("Arsenal");
+    await page.getByRole("tab", { name: "All" }).click();
     await expect(page.getByTestId("best-today")).toHaveCount(0);
+    await page.getByPlaceholder("Search a team or league…").fill("Arsenal");
+    await expect(page.getByTestId("game-row")).toHaveCount(1);
   });
 
   test("a shared link opens straight onto the day", async ({ page }) => {
     await page.goto("/?day=2026-10-25");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("October 25");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Sunday");
+    await expect(page.getByText(/25 Oct/)).toBeVisible();
   });
 
   test("visits and picks are logged through the beacon", async ({ page }) => {
@@ -147,7 +156,7 @@ test.describe("v2: first visit, measurement, calendar feeds", () => {
       await route.continue();
     });
     await page.goto("/");
-    await page.locator('[data-testid="game-row"]').first().getByRole("button", { name: /Want to watch/ }).click();
+    await page.locator('[data-testid="game-row"]').first().getByRole("button", { name: /^Add .* to plan$/ }).click();
     await page.waitForTimeout(1800);
     const all = posts.join("\n");
     expect(all).toContain('"n":"visit"');

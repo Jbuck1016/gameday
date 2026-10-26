@@ -4,31 +4,48 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { usePrefs } from "@/lib/prefs";
-import { THEMES, THEME_IDS } from "@/lib/themes";
 import { APP_NAME } from "@/lib/config";
 
 const NAV = [
-  { href: "/", label: "Browse" },
+  { href: "/", label: "Today" },
   { href: "/plan", label: "Plan" },
   { href: "/teams", label: "Teams" },
-  { href: "/settings", label: "Settings" },
 ];
+
+function PinIcon() {
+  return (
+    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 22s7-7 7-12a7 7 0 0 0-14 0c0 5 7 12 7 12z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </svg>
+  );
+}
+
+function PersonIcon() {
+  return (
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </svg>
+  );
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const path = usePathname();
-  const { prefs, theme, setTheme, ready, meta, account } = usePrefs();
+  const { prefs, ready, meta, account } = usePrefs();
   const count = prefs.plan.length;
   const shared = path.startsWith("/p/");
+  const areaShort = prefs.area?.label.split(",")[0] ?? "Set area";
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="border-b border-line">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-          <Link href="/" className="display text-2xl tracking-tight text-ink no-underline">
+      <header>
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-2 gap-y-1 px-4 pt-4 pb-1">
+          <Link href="/" className="display shrink-0 text-xl no-underline">
             {APP_NAME}
           </Link>
           {!shared && (
-            <nav aria-label="Main" className="flex flex-wrap items-center gap-1">
+            <nav aria-label="Main" className="order-last -ml-3 flex basis-full items-center gap-0.5 sm:order-none sm:ml-2 sm:basis-auto">
               {NAV.map((n) => {
                 const active = n.href === "/" ? path === "/" : path.startsWith(n.href);
                 return (
@@ -36,61 +53,42 @@ export function AppShell({ children }: { children: ReactNode }) {
                     key={n.href}
                     href={n.href}
                     aria-current={active ? "page" : undefined}
-                    className={`label flex min-h-11 items-center px-3 text-sm no-underline ${active ? "text-accent" : "text-muted hover:text-ink"}`}
+                    className={`flex min-h-11 items-center rounded-full px-3 text-sm font-semibold no-underline ${active ? "text-ink" : "text-muted hover:text-ink"}`}
                   >
                     {n.label}
-                    {n.href === "/plan" && ready && count > 0 && (
-                      <span className="ml-1.5 inline-flex min-w-5 items-center justify-center bg-accent px-1 text-xs text-accent-ink">
-                        {count}
-                      </span>
-                    )}
+                    {n.href === "/plan" && ready && count > 0 ? (
+                      <span className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-ink px-1.5 text-xs text-ground">{count}</span>
+                    ) : null}
                   </Link>
                 );
               })}
             </nav>
           )}
-          <div className="ml-auto flex items-center gap-3">
-            {!shared && account === null && (
-              <Link href={`/signin?next=${encodeURIComponent(path)}`} className="link whitespace-nowrap text-sm">
-                Sign in
+          <div className="ml-auto flex items-center gap-2">
+            {!shared && (
+              <Link href="/area" className="btn min-h-9 max-w-36 gap-1.5 px-3 text-xs no-underline" title={prefs.area?.label ?? "Set your area"}>
+                <PinIcon />
+                <span className="truncate">{ready ? areaShort : " "}</span>
               </Link>
             )}
-            {!shared && account && (
-              <Link href="/settings#account" className="link max-w-32 truncate whitespace-nowrap text-sm" title={account.email ?? "Account"}>
-                Account
+            {!shared && account !== undefined && (
+              <Link
+                href={account ? "/settings" : `/signin?next=${encodeURIComponent(path)}`}
+                aria-label={account ? "Account and settings" : "Sign in"}
+                className={`btn h-9 min-h-9 w-9 p-0 no-underline ${account ? "btn-primary" : ""}`}
+              >
+                <PersonIcon />
               </Link>
             )}
-            {!shared && prefs.area && (
-              <Link href="/area" className="link max-w-40 truncate whitespace-nowrap text-sm" title="Change your area">
-                {prefs.area.label}
-              </Link>
-            )}
-            <label className="sr-only" htmlFor="theme-select">
-              Theme
-            </label>
-            <select
-              id="theme-select"
-              className="input min-h-9 w-auto py-1 text-sm"
-              value={theme}
-              onChange={(e) => setTheme(e.target.value as typeof theme)}
-            >
-              {THEME_IDS.map((t) => (
-                <option key={t} value={t}>
-                  {THEMES[t].label}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
-        {meta?.fixtureMode && (
-          <p className="bg-surface2 px-4 py-1 text-center text-xs text-muted">
-            Demo data: a snapshot of the weekend of 24 October 2026.
-          </p>
-        )}
+        {meta?.fixtureMode && <p className="bg-surface2 px-4 py-1 text-center text-xs text-muted">Demo data: a snapshot of the weekend of 24 October 2026.</p>}
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">{children}</main>
+      <main id="main" className="mx-auto w-full max-w-3xl flex-1 px-4 py-3">
+        {children}
+      </main>
       <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-5xl flex-wrap justify-between gap-2 px-4 py-4 text-xs text-muted">
+        <div className="mx-auto flex max-w-3xl flex-wrap justify-between gap-2 px-4 py-4 text-xs text-muted">
           <span>Listings refresh every few hours. End times are estimates.</span>
           <span className="flex gap-4">
             <Link href="/about" className="link">
@@ -98,6 +96,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
             <Link href="/privacy" className="link">
               Privacy
+            </Link>
+            <Link href="/settings" className="link">
+              Settings
             </Link>
           </span>
         </div>

@@ -8,6 +8,13 @@ type FontSpec = { name: string; file: string; weight: Weight; style: "normal" | 
 export type LoadedFont = { name: string; data: ArrayBuffer; weight: Weight; style: "normal" | "italic" };
 
 const SPECS: Record<ThemeId, FontSpec[]> = {
+  daylight: [
+    { name: "Inter", file: "inter-latin-400-normal.woff", weight: 400, style: "normal" },
+    { name: "Inter", file: "inter-latin-500-normal.woff", weight: 500, style: "normal" },
+    { name: "Inter", file: "inter-latin-600-normal.woff", weight: 600, style: "normal" },
+    { name: "Inter", file: "inter-latin-700-normal.woff", weight: 700, style: "normal" },
+    { name: "Inter", file: "inter-latin-800-normal.woff", weight: 800, style: "normal" },
+  ],
   broadcast: [
     { name: "Anton", file: "anton-latin-400-normal.woff", weight: 400, style: "normal" },
     { name: "Barlow Condensed", file: "barlow-condensed-latin-600-normal.woff", weight: 600, style: "normal" },

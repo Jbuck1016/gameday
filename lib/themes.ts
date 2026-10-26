@@ -1,5 +1,5 @@
-// Three skins over one layout. Components read tokens through CSS variables (globals.css) and
-// these objects; the PNG card uses the same objects so exports match the app.
+// Looks for the share card (the site itself has one look, Daylight, set in globals.css).
+// Daylight is the default card look; the three older skins stay as export options.
 
 import type { ThemeId } from "@/lib/types";
 import { ensureContrast } from "@/lib/contrast";
@@ -31,6 +31,30 @@ function hm(ms: number, tz: string) {
 }
 
 export const THEMES: Record<ThemeId, Theme> = {
+  daylight: {
+    id: "daylight",
+    label: "Daylight",
+    ground: "#FFFFFF",
+    surface: "#F1F3F6",
+    surface2: "#E6E8EC",
+    text: "#111318",
+    muted: "#5F6673",
+    accent: "#111318",
+    line: "#E6E8EC",
+    wantColor: "#9AA1AD",
+    fonts: {
+      display: "'Inter', system-ui, sans-serif",
+      label: "'Inter', system-ui, sans-serif",
+      body: "'Inter', system-ui, sans-serif",
+    },
+    cardFonts: { display: "Inter", label: "Inter", body: "Inter" },
+    displayWeight: 700,
+    uppercaseLabels: false,
+    formatTime: (ms, tz) => {
+      const t = hm(ms, tz);
+      return `${t.h12}:${t.m} ${t.pm ? "PM" : "AM"}`;
+    },
+  },
   broadcast: {
     id: "broadcast",
     label: "Broadcast",
@@ -105,7 +129,8 @@ export const THEMES: Record<ThemeId, Theme> = {
   },
 };
 
-export const THEME_IDS: ThemeId[] = ["broadcast", "editorial", "terminal"];
+export const THEME_IDS: ThemeId[] = ["daylight", "broadcast", "editorial", "terminal"];
+export const SITE_THEME: ThemeId = "daylight";
 
 export function isThemeId(x: unknown): x is ThemeId {
   return typeof x === "string" && (THEME_IDS as string[]).includes(x);
@@ -118,6 +143,11 @@ export function barStyle(theme: Theme, priority: "must" | "want", teamColor: str
   backgroundImage?: string;
 } {
   const team = ensureContrast(teamColor, theme.surface, 3);
+  if (theme.id === "daylight") {
+    return priority === "must"
+      ? { background: team, border: `2px solid ${team}` }
+      : { background: "transparent", border: `2.5px solid ${team}` };
+  }
   if (theme.id === "broadcast") {
     return priority === "must"
       ? { background: team, border: `2px solid ${team}` }

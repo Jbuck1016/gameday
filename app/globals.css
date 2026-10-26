@@ -85,6 +85,20 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+@layer base {
+  a {
+    color: inherit;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+}
+
 @layer components {
 .label {
   font-family: var(--f-label);
@@ -212,10 +226,7 @@ button:focus-visible {
 
 }
 
-a {
-  color: inherit;
-}
-
+@layer components {
 .link {
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -233,4 +244,5 @@ a {
 .struck {
   text-decoration: line-through;
   opacity: 0.6;
+}
 }

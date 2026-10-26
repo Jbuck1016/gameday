@@ -31,15 +31,16 @@ export default function PrivacyPage() {
         <p>Your area, teams, services, theme and plan are kept in your own browser. We don&apos;t receive them unless you share a plan or create a calendar link.</p>
         <p>
           Your approximate location (city level) is looked up from your connection or a zip code you enter, only to choose local teams and
-          channels. We don&apos;t store your IP address.
+          channels. We don&apos;t keep your IP address. When you share a plan, a one-way scrambled form of it is saved with the plan so we can limit
+          spam.
         </p>
       </Section>
 
       <Section title="If you sign in with Google or an email link">
         <p>
-          We receive your email address and Google&apos;s account ID for you. We use them only to sign you in and to save your settings and plans to
-          your account so they appear on your other devices. We don&apos;t read anything else from your Google account, and we never send you
-          marketing email.
+          Google sends us your email address, name, profile picture link and an ID for your account. We use your email only to sign you in and to
+          save your settings and plans so they appear on your other devices; the rest is kept by our sign-in provider and not used. We can&apos;t see
+          anything else in your Google account, and we never send you marketing email.
         </p>
         <p>Your account data is stored with Supabase (our database and sign-in provider) and the site is hosted on Vercel.</p>
       </Section>
@@ -47,7 +48,8 @@ export default function PrivacyPage() {
       <Section title="Usage counts">
         <p>
           To learn whether the site is useful, it records actions such as visiting, adding a game or exporting a card, tied to a random ID stored in
-          your browser (and to your account if you sign in). These counts are never sold or shared, and aren&apos;t used for advertising.
+          your browser (and to your account if you sign in). Page visits are also counted by Vercel&apos;s web analytics. None of this is sold,
+          shared or used for advertising.
         </p>
       </Section>
 

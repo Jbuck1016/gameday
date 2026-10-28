@@ -146,7 +146,7 @@ test.describe("v2: first visit, measurement, calendar feeds", () => {
   test("a shared link opens straight onto the day", async ({ page }) => {
     await page.goto("/?day=2026-10-25");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Sunday");
-    await expect(page.getByText(/25 Oct/)).toBeVisible();
+    await expect(page.locator("main").getByText(/25 Oct/)).toBeVisible();
   });
 
   test("visits and picks are logged through the beacon", async ({ page }) => {

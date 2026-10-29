@@ -77,7 +77,7 @@ export function CardSlate({ d }: { d: XData }) {
         {rows.map((r) => (
           <Band key={r.id} r={r} h={bandH} w={1024} />
         ))}
-        {more > 0 ? <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 700, fontSize: 28, color: INK }}>{`+${more} MORE IN THE PLAN, ALL ON THE TIMELINE`}</div> : null}
+        {more > 0 ? <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 700, fontSize: 28, color: INK }}>{`+${more} MORE IN THE PLAN`}</div> : null}
       </div>
     </div>
   );
@@ -155,7 +155,7 @@ export function CardCover({ d }: { d: XData }) {
               style={row({ alignSelf: "flex-start", alignItems: "baseline", gap: 18, background: s.free ? RED : INK, padding: "10px 24px", transform: `rotate(${i % 2 ? 0.8 : -0.8}deg)` })}
             >
               <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 60, color: PAPER }}>{up(s.name)}</div>
-              <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 700, fontSize: 32, color: GOLD }}>{up(`${s.games} games${s.free ? " · free" : ""}`)}</div>
+              <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 700, fontSize: 32, color: GOLD }}>{up(`${s.games} ${s.games === 1 ? "game" : "games"}${s.free ? " · free" : ""}`)}</div>
             </div>
           ))}
         </div>

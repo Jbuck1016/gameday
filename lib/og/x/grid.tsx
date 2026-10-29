@@ -105,10 +105,12 @@ function TimelineView({ d, from, to, laneH, logo, text, big, placed, lanes }: { 
   const chipW = (r: XRow) => textW(r.outlet, Math.round(text * 0.8)) + 30;
   // Inside a bar: logos first, then the channel chip, then the longest label that still fits.
   // Logos already say who's playing, so the label is the first thing to go.
-  const label = (r: XRow, w: number): string | null => {
+  const label = (r: XRow, w: number): { t: string; size: number } | null => {
     const room = w - logosW - chipW(r) - 28;
-    if (big && textW(full(r), text) <= room) return full(r);
-    return textW(short(r), text) <= room ? short(r) : null;
+    if (big && textW(full(r), text) <= room) return { t: full(r), size: text };
+    if (textW(short(r), text) <= room) return { t: short(r), size: text };
+    const small = Math.round(text * 0.78);
+    return textW(short(r), small) <= room ? { t: short(r), size: small } : null;
   };
   const step = span > 9 * 60 ? 120 : 60;
   const hours: number[] = [];
@@ -169,7 +171,9 @@ function TimelineView({ d, from, to, laneH, logo, text, big, placed, lanes }: { 
                   <Logo side={r.second} size={logo} ring={3} style={{ marginLeft: -Math.round(logo * 0.28) }} />
                 </div>
                 {!labelOutside ? (
-                  <div style={{ display: "flex", flexGrow: 1, fontFamily: FONT, fontWeight: 800, fontSize: text, color: ink, letterSpacing: -0.5, whiteSpace: "nowrap" }}>{label(r, w) ?? ""}</div>
+                  <div style={{ display: "flex", flexGrow: 1, fontFamily: FONT, fontWeight: 800, fontSize: label(r, w)?.size ?? text, color: ink, letterSpacing: -0.5, whiteSpace: "nowrap" }}>
+                    {label(r, w)?.t ?? ""}
+                  </div>
                 ) : null}
                 {!labelOutside ? (
                   <div style={{ display: "flex", flexShrink: 0, fontFamily: FONT, fontWeight: 800, fontSize: Math.round(text * 0.8), color: INK, background: "#FFFFFF", padding: "4px 12px", borderRadius: 30 }}>{r.outlet}</div>

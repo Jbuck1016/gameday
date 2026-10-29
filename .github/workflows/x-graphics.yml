@@ -1,0 +1,46 @@
+# Renders the X post graphics for a shared plan from the live site and keeps them as a
+# downloadable workflow artifact (Actions > X graphics > run > artifacts).
+name: X graphics
+
+on:
+  workflow_dispatch:
+    inputs:
+      plan:
+        description: Shared plan slug (the part after /p/)
+        required: true
+      looks:
+        description: Looks to render, space separated
+        default: departures grid card
+      kinds:
+        description: Formats to render, space separated
+        default: slate crunch cover
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Render
+        env:
+          PLAN: ${{ inputs.plan }}
+          LOOKS: ${{ inputs.looks }}
+          KINDS: ${{ inputs.kinds }}
+        run: |
+          set -euo pipefail
+          [[ "$PLAN" =~ ^[A-Za-z0-9]{4,16}$ ]] || { echo "bad plan slug"; exit 1; }
+          mkdir out
+          for look in $LOOKS; do
+            for kind in $KINDS; do
+              [[ "$look$kind" =~ ^[a-z]+$ ]] || continue
+              curl -fsS --retry 2 -o "out/${look}-${kind}.png" \
+                "https://gameday-tau-seven.vercel.app/api/og/x?plan=${PLAN}&kind=${kind}&look=${look}"
+            done
+          done
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: x-graphics-${{ inputs.plan }}
+          path: out/
+          retention-days: 14

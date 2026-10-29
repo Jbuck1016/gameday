@@ -10,7 +10,21 @@ import { planDays } from "@/lib/plan";
 import { PlanView } from "./PlanView";
 import { track } from "@/lib/track";
 
-type Size = "portrait" | "story" | "square";
+type Size = "portrait" | "story" | "square" | "wide";
+type WideLook = "grid" | "departures" | "card";
+type WideKind = "slate" | "crunch" | "cover";
+
+// wide (16:9) images for X and group chats: three looks, three things to show
+const WIDE_LOOKS: { id: WideLook; label: string }[] = [
+  { id: "grid", label: "Timeline" },
+  { id: "departures", label: "Departures board" },
+  { id: "card", label: "Fight card" },
+];
+const WIDE_KINDS: { id: WideKind; label: string }[] = [
+  { id: "slate", label: "The whole day" },
+  { id: "crunch", label: "Busiest clash" },
+  { id: "cover", label: "What it takes to watch" },
+];
 
 function signature(p: Prefs): string {
   return JSON.stringify({
@@ -71,6 +85,8 @@ export function PlanPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [size, setSize] = useState<Size>("portrait");
+  const [wideLook, setWideLook] = useState<WideLook>("grid");
+  const [wideKind, setWideKind] = useState<WideKind>("slate");
 
   useEffect(() => {
     if (!ready || !days.length) return;
@@ -166,18 +182,21 @@ export function PlanPage() {
   const exportImage = () =>
     run("export", async () => {
       const slug = await ensureShared();
-      const url = `/api/card?plan=${slug}&theme=${themeId}&size=${size}&day=${day}`;
+      const wide = size === "wide";
+      const url = wide
+        ? `/api/og/x?plan=${slug}&look=${wideLook}&kind=${wideKind}&day=${day}`
+        : `/api/card?plan=${slug}&theme=${themeId}&size=${size}&day=${day}`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error("Couldn't render the image");
+      if (!res.ok) throw new Error("Couldn't render the image. Try again in a moment.");
       const blob = await res.blob();
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `gameday-${day}-${themeId}.png`;
+      a.download = wide ? `gameday-${day}-${wideKind}-${wideLook}.png` : `gameday-${day}-${themeId}.png`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
-      track("card_exported", { theme: themeId, size });
+      track("card_exported", wide ? { look: wideLook, kind: wideKind, size } : { theme: themeId, size });
       setMsg("Image saved.");
     });
 
@@ -278,24 +297,49 @@ export function PlanPage() {
           Share this day
         </h2>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="text-sm text-muted" htmlFor="card-theme">
-            Look
-          </label>
-          <select id="card-theme" className="input w-auto" value={themeId} onChange={(e) => setTheme(e.target.value as typeof themeId)}>
-            {THEME_IDS.map((t) => (
-              <option key={t} value={t}>
-                {THEMES[t].label}
-              </option>
-            ))}
-          </select>
           <label className="text-sm text-muted" htmlFor="card-size">
             Size
           </label>
           <select id="card-size" className="input w-auto" value={size} onChange={(e) => setSize(e.target.value as Size)}>
             <option value="portrait">Post (4:5)</option>
+            <option value="wide">Wide (16:9), for X</option>
             <option value="story">Story (9:16)</option>
             <option value="square">Square</option>
           </select>
+          <label className="text-sm text-muted" htmlFor="card-theme">
+            Look
+          </label>
+          {size === "wide" ? (
+            <select id="card-theme" className="input w-auto" value={wideLook} onChange={(e) => setWideLook(e.target.value as WideLook)}>
+              {WIDE_LOOKS.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <select id="card-theme" className="input w-auto" value={themeId} onChange={(e) => setTheme(e.target.value as typeof themeId)}>
+              {THEME_IDS.map((t) => (
+                <option key={t} value={t}>
+                  {THEMES[t].label}
+                </option>
+              ))}
+            </select>
+          )}
+          {size === "wide" ? (
+            <>
+              <label className="text-sm text-muted" htmlFor="card-kind">
+                Show
+              </label>
+              <select id="card-kind" className="input w-auto" value={wideKind} onChange={(e) => setWideKind(e.target.value as WideKind)}>
+                {WIDE_KINDS.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.label}
+                  </option>
+                ))}
+              </select>
+            </>
+          ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" className="btn btn-primary" onClick={exportImage} disabled={!!busy}>

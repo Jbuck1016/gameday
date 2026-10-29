@@ -57,7 +57,7 @@ function Head({ d, title, label, size = 62 }: { d: XData; title: string; label: 
       </div>
       <div style={col({ alignItems: "flex-end", gap: 6 })}>
         <div style={{ display: "flex", fontFamily: "Inter", fontWeight: 800, fontSize: 40, color: CREAM, letterSpacing: -1 }}>Game Day</div>
-        <div style={{ display: "flex", fontFamily: MONO, fontWeight: 700, fontSize: 22, color: MUTED }}>{`TIMES ${d.tzLabel} · NATIONAL TV`}</div>
+        <div style={{ display: "flex", fontFamily: MONO, fontWeight: 700, fontSize: 22, color: MUTED }}>{(d.area && /times/i.test(d.area) ? d.area : `TIMES ${d.tzLabel} · ${d.area ?? "NATIONAL TV"}`).toUpperCase().slice(0, 44)}</div>
       </div>
     </div>
   );

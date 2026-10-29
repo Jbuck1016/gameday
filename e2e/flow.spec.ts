@@ -51,6 +51,15 @@ test.describe("first visit to an exported card", () => {
     const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Export image" }).click()]);
     expect(download.suggestedFilename()).toMatch(/gameday-2026-10-24-daylight\.png/);
 
+    // wide images for X: three looks, three things to show
+    await page.getByLabel("Size").selectOption("wide");
+    await page.getByLabel("Look").selectOption("card");
+    await page.getByLabel("Show").selectOption("crunch");
+    const [wide] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Export image" }).click()]);
+    expect(wide.suggestedFilename()).toBe("gameday-2026-10-24-crunch-card.png");
+    const png = await (await import("node:fs/promises")).readFile((await wide.path())!);
+    expect(png.subarray(1, 4).toString()).toBe("PNG");
+
     await page.goto(link);
     await expect(page.getByTestId("plan-game")).toHaveCount(3);
     await expect(page.getByRole("link", { name: "Make my plan" })).toBeVisible();

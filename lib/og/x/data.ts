@@ -35,6 +35,8 @@ export type XData = {
   dayKey: string;
   tz: string;
   tzLabel: string;
+  /** the plan's area, e.g. "Los Angeles, CA"; null for a national plan */
+  area: string | null;
   rows: XRow[];
   windowStart: number;
   windowEnd: number;
@@ -195,6 +197,7 @@ export async function buildXData(plan: StoredPlan, games: Game[], dayParam: stri
     tz,
     // EDT/EST -> ET, PDT -> PT, and so on; anything else as the zone names itself
     tzLabel: tzShort && /^[ECMP][SD]T$/.test(tzShort) ? `${tzShort[0]}T` : (tzShort ?? ""),
+    area: plan.areaLabel,
     rows,
     windowStart: model.windowStart,
     windowEnd: model.windowEnd,

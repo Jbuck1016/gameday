@@ -2,7 +2,7 @@
 // than one child sets display:flex, and all styles are inline.
 
 import type { CSSProperties, ReactNode } from "react";
-import { cardWhere, timelineLabel, type DayModel } from "@/lib/plan";
+import { cardWhere, cardWindow, timelineLabel, type DayModel } from "@/lib/plan";
 import { barStyle, type Theme } from "@/lib/themes";
 import { ensureContrast } from "@/lib/contrast";
 import { matchupLabel, teamColor } from "@/lib/games";
@@ -35,6 +35,10 @@ function hourLabel(theme: Theme, h: number): string {
   if (theme.id === "editorial") return hh === 12 ? "noon" : `${h12}${hh < 12 ? "am" : "pm"}`;
   return `${h12}${hh < 12 ? "A" : "P"}`;
 }
+
+/** "7:30 PM" -> "7:30" and "PM"; formats without a meridiem pass through whole. */
+const clockPart = (t: string) => t.split(" ")[0];
+const meridiemPart = (t: string) => t.split(" ")[1] ?? "";
 
 const flexRow = (s: CSSProperties = {}): CSSProperties => ({ display: "flex", flexDirection: "row", ...s });
 const flexCol = (s: CSSProperties = {}): CSSProperties => ({ display: "flex", flexDirection: "column", ...s });
@@ -70,10 +74,12 @@ export function DayCard({
   siteHost?: string | null;
 }) {
   const dim = CARD_DIMENSIONS[size];
-  const span = model.windowEnd - model.windowStart;
-  const x = (ms: number) => Math.max(0, Math.min(TRACK_W, ((minutesIntoDay(ms, model.dayKey, model.tz) - model.windowStart) / span) * TRACK_W));
+  const win = cardWindow(model);
+  const span = win.end - win.start;
+  const x = (ms: number) => Math.max(0, Math.min(TRACK_W, ((minutesIntoDay(ms, model.dayKey, model.tz) - win.start) / span) * TRACK_W));
+  const step = span > 8 * 60 ? 120 : 60;
   const hours: number[] = [];
-  for (let m = Math.ceil(model.windowStart / 120) * 120; m < model.windowEnd; m += 120) hours.push(m / 60);
+  for (let m = Math.ceil(win.start / step) * step; m < win.end; m += step) hours.push(m / 60);
   const tlGames = model.games.slice(0, dim.timelineRows);
   const listGames = model.games.slice(0, dim.listRows);
   const hidden = model.games.length - listGames.length;
@@ -102,7 +108,7 @@ export function DayCard({
       })}
     >
       {/* header */}
-      <div style={flexRow({ justifyContent: "space-between", alignItems: "flex-end", ...(theme.id === "editorial" ? { borderBottom: `3px solid ${theme.text}`, paddingBottom: 18 } : {}) })}>
+      <div style={flexCol({ gap: 16, ...(theme.id === "editorial" ? { borderBottom: `3px solid ${theme.text}`, paddingBottom: 18 } : {}) })}>
         <div style={flexCol({ gap: 6 })}>
           <Label theme={theme} style={{ fontSize: 22, color: theme.accent }}>
             {theme.id === "terminal" ? `> ${APP_NAME.toLowerCase().replace(" ", "_")} · ${areaLabel ?? "your area"}` : `${APP_NAME} · ${areaLabel ?? "your area"}`}
@@ -121,9 +127,9 @@ export function DayCard({
             {dateTitle(theme, model.dayKey)}
           </div>
         </div>
-        <div style={flexCol({ alignItems: "flex-end", gap: 8, flexShrink: 0, marginLeft: 16 })}>
+        <div style={flexRow({ gap: 32 })}>
           <div style={flexRow({ alignItems: "center", gap: 10 })}>
-            <div style={{ display: "flex", width: 28, height: 12, ...barStyle(theme, "must", theme.id === "broadcast" ? "#F5F7FA" : null) }} />
+            <div style={{ display: "flex", width: 28, height: 12, ...barStyle(theme, "must", theme.id === "broadcast" ? "#F5F7FA" : theme.id === "daylight" ? theme.text : null) }} />
             <Label theme={theme} style={{ fontSize: 20 }}>{`Must watch · ${musts}`}</Label>
           </div>
           <div style={flexRow({ alignItems: "center", gap: 10 })}>
@@ -144,7 +150,7 @@ export function DayCard({
                 style={{
                   display: "flex",
                   position: "absolute",
-                  left: Math.max(0, ((h * 60 - model.windowStart) / span) * TRACK_W - 12),
+                  left: Math.max(0, ((h * 60 - win.start) / span) * TRACK_W - 12),
                   fontSize: 17,
                   color: theme.muted,
                   fontFamily: theme.cardFonts.label,
@@ -224,6 +230,7 @@ export function DayCard({
                 ? {}
                 : {};
           const { where, via } = cardWhere(d);
+          const startLabel = theme.formatTime(d.start, model.tz);
           return (
             <div
               key={d.game.id}
@@ -233,9 +240,14 @@ export function DayCard({
                 ...(theme.id === "terminal" ? { borderBottom: `1px solid #1E1E1E` } : {}),
               })}
             >
-              <div style={flexCol({ width: 150, justifyContent: "center", paddingLeft: 18, ...timeBox })}>
-                <div style={{ display: "flex", fontFamily: theme.cardFonts.display, fontWeight: theme.displayWeight, fontSize: 34, color: theme.id === "terminal" ? "#F2F2F2" : theme.text }}>
-                  {d.game.timeValid ? theme.formatTime(d.start, model.tz) : "TBC"}
+              <div style={flexCol({ width: 170, flexShrink: 0, justifyContent: "center", paddingLeft: 18, ...timeBox })}>
+                <div style={flexRow({ alignItems: "baseline", gap: 6, color: theme.id === "terminal" ? "#F2F2F2" : theme.text })}>
+                  <div style={{ display: "flex", fontFamily: theme.cardFonts.display, fontWeight: theme.displayWeight, fontSize: 34 }}>
+                    {d.game.timeValid ? clockPart(startLabel) : "TBC"}
+                  </div>
+                  {d.game.timeValid && meridiemPart(startLabel) ? (
+                    <div style={{ display: "flex", fontFamily: theme.cardFonts.label, fontWeight: 700, fontSize: 18 }}>{meridiemPart(startLabel)}</div>
+                  ) : null}
                 </div>
                 <Label theme={theme} style={{ fontSize: 16, color: theme.id === "broadcast" ? theme.text : theme.muted }}>
                   {`to ~${theme.formatTime(d.end, model.tz)}`}
@@ -244,6 +256,9 @@ export function DayCard({
               <div
                 style={flexCol({
                   flexGrow: 1,
+                  flexShrink: 1,
+                  minWidth: 0,
+                  overflow: "hidden",
                   justifyContent: "center",
                   padding: "0 22px",
                   gap: 4,
@@ -256,7 +271,7 @@ export function DayCard({
                     fontFamily: theme.cardFonts.display,
                     fontWeight: theme.id === "editorial" ? (d.priority === "must" ? 600 : 400) : theme.displayWeight,
                     fontStyle: theme.id === "editorial" && d.priority === "want" ? "italic" : "normal",
-                    fontSize: theme.id === "terminal" ? 26 : 30,
+                    fontSize: theme.id === "terminal" ? 26 : matchupLabel(d.game).length > 26 ? 25 : 30,
                     textTransform: theme.id === "editorial" ? "none" : "uppercase",
                     color: theme.id === "terminal" ? "#F2F2F2" : theme.text,
                   }}
@@ -270,6 +285,7 @@ export function DayCard({
               <div
                 style={flexCol({
                   width: 250,
+                  flexShrink: 0,
                   justifyContent: "center",
                   alignItems: "flex-end",
                   paddingRight: 20,

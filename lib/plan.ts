@@ -81,6 +81,20 @@ export function buildDayModel(
   };
 }
 
+/**
+ * A tight timeline window for the exported card: from the top of the hour the first game starts
+ * in to the hour after the last estimated end, at least `minSpan` minutes. The site timeline keeps the
+ * whole-day window; a card has no room to spend on empty morning hours.
+ */
+export function cardWindow(model: DayModel, minSpan = 240): { start: number; end: number } {
+  if (!model.games.length) return { start: model.windowStart, end: model.windowEnd };
+  const starts = model.games.map((d) => minutesIntoDay(d.start, model.dayKey, model.tz));
+  const ends = model.games.map((d) => minutesIntoDay(d.end, model.dayKey, model.tz));
+  const start = Math.max(0, Math.floor(Math.min(...starts) / 60) * 60);
+  const end = Math.max(start + minSpan, Math.ceil(Math.max(...ends) / 60) * 60);
+  return { start, end };
+}
+
 /** Distinct local days that have plan games, in order. */
 export function planDays(starts: string[], tz: string): string[] {
   return Array.from(new Set(starts.map((s) => dateKey(Date.parse(s), tz)))).sort();

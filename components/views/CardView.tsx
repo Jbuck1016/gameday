@@ -23,7 +23,7 @@ export function CardView({ games, tz, day, myServices, priorityOf, onPriority, o
           <span style={{ fontFamily: LABEL }} className="text-[15px] font-bold tracking-[3px]">
             THE CARD · {games.length} {games.length === 1 ? "GAME" : "GAMES"}
           </span>
-          <span style={{ fontFamily: DISPLAY }} className="text-[44px] leading-none">
+          <span style={{ fontFamily: DISPLAY }} className="text-[40px] leading-none whitespace-nowrap sm:text-[44px]">
             {weekday.slice(0, 3).toUpperCase()} <span className="text-[#c42a18]">{date.toUpperCase()}</span>
           </span>
         </div>

@@ -104,6 +104,14 @@ async function side(g: Game, home: boolean): Promise<Side> {
   };
 }
 
+/** Up to `n` rows: every must-watch first, then wants in kickoff order; shown in kickoff order. */
+export function pickRows(rows: XRow[], n: number): XRow[] {
+  if (rows.length <= n) return rows;
+  const musts = rows.filter((r) => r.priority === "must");
+  const wants = rows.filter((r) => r.priority !== "must");
+  return [...musts, ...wants].slice(0, n).sort((a, b) => a.start - b.start);
+}
+
 export async function buildXData(plan: StoredPlan, games: Game[], dayParam: string | null, host: string): Promise<XData> {
   const tz = plan.timezone;
   const days = planDays(

@@ -200,7 +200,7 @@ function fit(d: XData, rows: XRow[], padBefore = 0) {
 }
 
 export function GridSlate({ d }: { d: XData }) {
-  const rows = d.rows.slice(0, 9);
+  const rows = d.rows;
   const { from, to } = fit(d, rows);
   return (
     <div style={col(frame)}>

@@ -2,7 +2,7 @@
 // with the kickoff and channel in a tag on the seam; the clash is drawn as an actual quad box.
 // Warm paper ground, heavy condensed type, one red for must-watch and the clash.
 
-import { X_H, X_W, inkOn, type XData, type XRow } from "./data";
+import { X_H, X_W, inkOn, pickRows, type XData, type XRow } from "./data";
 import { Logo, col, row } from "./kit";
 
 const PAPER = "#F2EDE3";
@@ -51,7 +51,7 @@ function Band({ r, h, w }: { r: XRow; h: number; w: number }) {
 const frame = { width: X_W, height: X_H, background: PAPER } as const;
 
 export function CardSlate({ d }: { d: XData }) {
-  const rows = d.rows.slice(0, 7);
+  const rows = pickRows(d.rows, 7);
   const more = d.rows.length - rows.length;
   const bandH = rows.length > 6 ? 98 : 112;
   return (
@@ -67,9 +67,9 @@ export function CardSlate({ d }: { d: XData }) {
           {d.free && !d.services.some((s) => s.free) ? (
             <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 700, fontSize: 26, color: RED }}>{up(`${d.free.games} free with an ${d.free.name}`)}</div>
           ) : null}
-          <div style={row({ alignItems: "center", gap: 12, marginTop: 16 })}>
-            <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 44, color: PAPER, background: INK, padding: "2px 14px" }}>GAME DAY</div>
-            <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 600, fontSize: 22, color: INK }}>{d.host}</div>
+          <div style={col({ gap: 8, marginTop: 16 })}>
+            <div style={{ display: "flex", alignSelf: "flex-start", fontFamily: DISPLAY, fontSize: 44, color: PAPER, background: INK, padding: "2px 14px", whiteSpace: "nowrap" }}>GAME DAY</div>
+            <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 600, fontSize: 24, color: INK }}>{d.host}</div>
           </div>
         </div>
       </div>
@@ -77,7 +77,7 @@ export function CardSlate({ d }: { d: XData }) {
         {rows.map((r) => (
           <Band key={r.id} r={r} h={bandH} w={1024} />
         ))}
-        {more > 0 ? <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 700, fontSize: 28, color: INK }}>{`+${more} MORE IN THE PLAN`}</div> : null}
+        {more > 0 ? <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 700, fontSize: 28, color: INK }}>{`+${more} MORE IN THE PLAN, ALL ON THE TIMELINE`}</div> : null}
       </div>
     </div>
   );

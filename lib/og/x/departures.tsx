@@ -1,7 +1,7 @@
 // Look A, "Departures": the day as a split-flap board. Kickoff is departure time, the channel
 // is the gate, and the status column says CLASH. Mono caps in flap tiles on a black board.
 
-import { X_H, X_W, type XData, type XRow } from "./data";
+import { X_H, X_W, pickRows, type XData, type XRow } from "./data";
 import { Logo, col, row, sideLabel } from "./kit";
 
 const BOARD = "#0B0B0C";
@@ -64,6 +64,8 @@ function Head({ d, title, label, size = 62 }: { d: XData; title: string; label: 
 }
 
 const COLS = { time: 5, mer: 2, game: 22, on: 11, status: 5 };
+const logoSize = (size: number) => Math.round(size * 1.4);
+const logoCol = (size: number) => logoSize(size) * 2 - 10;
 
 function ColHeads({ size }: { size: number }) {
   const w = (n: number) => n * (Math.round(size * 0.72) + Math.max(2, Math.round(size * 0.08)));
@@ -71,7 +73,7 @@ function ColHeads({ size }: { size: number }) {
   return (
     <div style={row({ gap: 18, paddingBottom: 6, borderBottom: `2px solid #26282D` })}>
       <div style={{ ...s, width: w(COLS.time + COLS.mer) + 18 }}>KICKOFF</div>
-      <div style={{ ...s, width: 104 }} />
+      <div style={{ ...s, width: logoCol(size) }} />
       <div style={{ ...s, width: w(COLS.game) }}>GAME</div>
       <div style={{ ...s, width: w(COLS.on) }}>ON</div>
       <div style={{ ...s }}>STATUS</div>
@@ -86,9 +88,9 @@ function BoardRow({ r, size }: { r: XRow; size: number }) {
     <div style={row({ gap: 18, alignItems: "center" })}>
       <Flaps text={r.time.padStart(5, " ")} size={size} n={COLS.time} />
       <Flaps text={r.mer} size={size} n={COLS.mer} color={MUTED} />
-      <div style={row({ width: 104 })}>
-        <Logo side={r.first} size={52} />
-        <Logo side={r.second} size={52} style={{ marginLeft: -10 }} />
+      <div style={row({ width: logoCol(size) })}>
+        <Logo side={r.first} size={logoSize(size)} />
+        <Logo side={r.second} size={logoSize(size)} style={{ marginLeft: -10 }} />
       </div>
       <Flaps text={gameText(r, COLS.game)} size={size} n={COLS.game} />
       <Flaps text={r.outlet} size={size} n={COLS.on} color={CREAM} />
@@ -117,15 +119,19 @@ function Foot({ d, left }: { d: XData; left: string }) {
 const frame = { width: X_W, height: X_H, background: BOARD, padding: "52px 64px 44px", gap: 26 } as const;
 
 export function DeparturesSlate({ d }: { d: XData }) {
-  const rows = d.rows.slice(0, 7);
+  const rows = pickRows(d.rows, 11);
+  // a full Saturday gets smaller flaps so every kickoff fits on one board
+  const size = rows.length > 7 ? 29 : 34;
+  const more = d.rows.length - rows.length;
   return (
     <div style={col(frame)}>
       <Head d={d} title={`${d.weekday.slice(0, 3)} ${d.date}`} label="KICKOFFS" />
-      <div style={col({ gap: 12 })}>
-        <ColHeads size={34} />
+      <div style={col({ gap: rows.length > 7 ? 8 : 12 })}>
+        <ColHeads size={size} />
         {rows.map((r) => (
-          <BoardRow key={r.id} r={r} size={34} />
+          <BoardRow key={r.id} r={r} size={size} />
         ))}
+        {more > 0 ? <div style={{ display: "flex", fontFamily: MONO, fontWeight: 700, fontSize: 22, color: MUTED }}>{`+${more} MORE IN THE PLAN`}</div> : null}
       </div>
       <Foot d={d} left="YOU NEED" />
     </div>

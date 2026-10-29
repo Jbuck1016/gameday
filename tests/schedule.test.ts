@@ -159,3 +159,20 @@ describe("duration", () => {
     expect(w.end).toBe(now + 15 * 60000);
   });
 });
+
+describe("servicesNeeded tie-breaks", () => {
+  it("breaks a must-watch tie toward the service that also covers the wants", () => {
+    // Saturday 31 Oct: both musts on Hulu + Live TV and YouTube TV; NBA TV only on YouTube TV
+    const r = servicesNeeded(
+      [
+        { id: "chelsea", priority: "must", services: ["hulu_live", "youtube_tv"] },
+        { id: "uga", priority: "must", services: ["antenna", "fubo", "hulu_live", "youtube_tv"] },
+        { id: "sixers", priority: "want", services: ["nba_league_pass", "youtube_tv"] },
+        { id: "derby", priority: "want", services: ["paramount_plus"] },
+      ],
+      [],
+    );
+    expect(r.chosen).toEqual(["youtube_tv", "paramount_plus"]);
+  });
+
+});

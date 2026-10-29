@@ -1,5 +1,6 @@
 // Which services does this plan need? Greedy set cover: must-watch games first, then wants.
-// Ties prefer services the visitor already has, then free ones.
+// Ties prefer services the visitor already has, then free ones, then the one that also carries
+// more of the later (want) games, so the must pass doesn't pick a service the wants can't use.
 
 import type { Priority } from "@/lib/types";
 
@@ -15,7 +16,7 @@ export type CoverResult = {
   uncoverable: string[];
 };
 
-function greedy(games: CoverGame[], mine: Set<string>, already: string[]): string[] {
+function greedy(games: CoverGame[], mine: Set<string>, already: string[], later: CoverGame[] = []): string[] {
   const chosen = [...already];
   let remaining = games.filter((g) => !g.services.some((s) => chosen.includes(s)) && g.services.length > 0);
   while (remaining.length) {
@@ -24,7 +25,9 @@ function greedy(games: CoverGame[], mine: Set<string>, already: string[]): strin
     let best: string | null = null;
     let bestScore = -1;
     for (const [s, n] of score) {
-      const bonus = (mine.has(s) ? 0.5 : 0) + (FREE_SERVICES.has(s) ? 0.25 : 0);
+      // later-game coverage only breaks ties: at most 0.2 in total, below the free-service bonus
+      const reach = later.length ? (later.filter((g) => g.services.includes(s)).length / later.length) * 0.2 : 0;
+      const bonus = (mine.has(s) ? 0.5 : 0) + (FREE_SERVICES.has(s) ? 0.25 : 0) + reach;
       const v = n + bonus;
       if (v > bestScore || (v === bestScore && best !== null && s < best)) {
         best = s;
@@ -42,7 +45,7 @@ export function servicesNeeded(games: CoverGame[], myServices: string[]): CoverR
   const mine = new Set(myServices);
   const must = games.filter((g) => g.priority === "must");
   const want = games.filter((g) => g.priority === "want");
-  const afterMust = greedy(must, mine, []);
+  const afterMust = greedy(must, mine, [], want);
   const chosen = greedy(want, mine, afterMust);
   return {
     chosen,

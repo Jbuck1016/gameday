@@ -119,6 +119,7 @@ export function initTracking() {
   track("visit", {
     ref: refHost(),
     utm: q.get("utm_source")?.slice(0, 60) ?? null,
+    campaign: q.get("utm_campaign")?.slice(0, 60) ?? null,
     returning: !firstSession,
     mobile: window.matchMedia?.("(max-width: 640px)").matches ?? false,
   });

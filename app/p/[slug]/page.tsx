@@ -24,12 +24,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const data = await load(slug).catch(() => null);
   if (!data) return { title: "Plan not found" };
-  const title = `${formatDayLabel(data.plan.dateFrom)} · ${APP_NAME}`;
+  // the root layout's title template appends the app name
+  const title = formatDayLabel(data.plan.dateFrom);
   const image = `/api/card?plan=${slug}&theme=${data.plan.theme}`;
   return {
     title,
     description: `${data.plan.items.length} games${data.plan.areaLabel ? ` · ${data.plan.areaLabel}` : ""}`,
-    openGraph: { title, images: [{ url: image, width: 1080, height: 1350 }] },
+    openGraph: { title: `${title} · ${APP_NAME}`, images: [{ url: image, width: 1080, height: 1350 }] },
     twitter: { card: "summary_large_image", images: [image] },
   };
 }

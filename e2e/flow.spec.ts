@@ -322,6 +322,17 @@ test.describe("today's three views", () => {
     await expect(page).toHaveURL(/view=board/);
   });
 
+  test("a busy day on a phone keeps timeline blocks readable and scrolls sideways inside the timeline", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/?show=all&view=timeline");
+    await expect(page.getByTestId("game-row")).toHaveCount(12);
+    const widths = await page.getByTestId("game-row").evaluateAll((els) => els.map((e) => e.getBoundingClientRect().width));
+    expect(Math.min(...widths)).toBeGreaterThanOrEqual(96);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+    await page.screenshot({ path: `${SHOTS}/view-timeline-busy-phone.png`, fullPage: true });
+  });
+
   for (const view of ["card", "timeline", "board"]) {
     test(`${view} view: no sideways scroll on a phone and no serious axe violations`, async ({ page }) => {
       await page.setViewportSize({ width: 390, height: 844 });

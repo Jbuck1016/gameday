@@ -5,13 +5,15 @@ import type { Game } from "@/lib/types";
 import { localDayRange, minutesIntoDay } from "@/lib/time";
 import { matchupLabel } from "@/lib/games";
 import { scoreGame } from "@/lib/featured";
-import { assignLanes, overlapBands, spanOf } from "@/lib/views";
+import { assignLanes, clusterLanes, overlapBands, spanOf } from "@/lib/views";
 import { PickButton } from "../GameRow";
 import { TeamDisc, TeamPair } from "./TeamDisc";
 import { gameFill, inkOn, sides, teamLabel, useMinWidth, watchLine, type ViewProps } from "./shared";
 
 /** More than this and the timeline stops reading as a day; the Board lists everything. */
 export const TIMELINE_MAX = 12;
+/** The narrowest a phone block gets; busier stretches scroll sideways instead of shrinking further. */
+const MIN_LANE = 96;
 
 /** The biggest games for the timeline: planned ones first, then by Best's scoring. */
 export function timelineGames(games: Game[], priorityOf: (id: string) => unknown): Game[] {
@@ -41,12 +43,13 @@ export function TimelineView(props: ViewProps & { allCount: number; onSeeAll: ()
     const from = Math.floor(Math.min(...spans.map((s) => mins(s.start))) / 60) * 60;
     const to = Math.max(from + 240, Math.ceil(Math.max(...spans.map((s) => mins(s.end))) / 60) * 60);
     const { lane, lanes } = assignLanes(spans);
+    const phone = clusterLanes(spans);
     const raw = overlapBands(spans);
     const bands = raw.map((b) => ({ from: mins(b.from), to: mins(b.to), n: b.n }));
     // the busiest stretch, earliest first on a tie
     const peak = raw.reduce<{ n: number; from: number } | null>((best, b) => (!best || b.n > best.n ? { n: b.n, from: b.from } : best), null);
     const byId = new Map(spans.map((s) => [s.id, { start: mins(s.start), end: mins(s.end) }]));
-    return { from, to, lane, lanes, bands, peak, byId, mins, dayStart: localDayRange(day, tz).from.getTime() };
+    return { from, to, lane, lanes, phone, bands, peak, byId, mins, dayStart: localDayRange(day, tz).from.getTime() };
   }, [timed, nowMs, day, tz]);
 
   if (!games.length) return null;
@@ -70,7 +73,8 @@ export function TimelineView(props: ViewProps & { allCount: number; onSeeAll: ()
     </div>
   ) : null;
   if (!layout) return <section aria-label="Timeline" className="mt-3">{tbcList}</section>;
-  const { from, to, lane, lanes, bands, peak, byId, mins, dayStart } = layout;
+  const { from, to, lane, lanes, phone, bands, peak, byId, mins, dayStart } = layout;
+  const ruleWidth = `max(100%, ${phone.maxLanes * MIN_LANE}px)`;
   const span = to - from;
   const hours: number[] = [];
   for (let m = Math.ceil(from / 60) * 60; m <= to; m += 60) hours.push(m);
@@ -83,6 +87,7 @@ export function TimelineView(props: ViewProps & { allCount: number; onSeeAll: ()
     <section aria-label="Timeline" className="mt-3">
       <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         {peakLabel ? <span className="text-sm font-extrabold text-[#c2410c]">{peakLabel}</span> : <span className="text-sm text-muted">No clashes</span>}
+        {!wide && phone.maxLanes >= 4 ? <span className="text-xs text-muted">Busy stretches scroll sideways</span> : null}
         {capped ? (
           <span className="text-xs text-muted">
             The {games.length} biggest of {allCount}.{" "}
@@ -106,18 +111,21 @@ export function TimelineView(props: ViewProps & { allCount: number; onSeeAll: ()
               <span key={b.from} className="absolute right-1.5 w-1 rounded-sm" style={{ top: (b.from - from) * 1.2 + 8, height: Math.max(4, (b.to - b.from) * 1.2 - 2), background: b.n >= 3 ? "#f2551d" : "#f8a77f" }} />
             ))}
           </div>
-          <ul className="relative flex-1" data-testid={listTestId}>
+          <div className="relative min-w-0 flex-1 overflow-x-auto overflow-y-hidden overscroll-x-contain">
+          <ul className="relative h-full" data-testid={listTestId}>
             {hours.map((m) => (
-              <li key={m} aria-hidden="true" className="absolute inset-x-0 h-px bg-[#eef0f3]" style={{ top: (m - from) * 1.2 + 8 }} />
+              <li key={m} aria-hidden="true" className="absolute left-0 h-px bg-[#eef0f3]" style={{ top: (m - from) * 1.2 + 8, width: ruleWidth }} />
             ))}
-            {showNow ? <li aria-hidden="true" className="absolute inset-x-0 z-10 h-0.5 bg-[#c2410c]" style={{ top: (nowMin! - from) * 1.2 + 8 }} /> : null}
+            {showNow ? <li aria-hidden="true" className="absolute left-0 z-10 h-0.5 bg-[#c2410c]" style={{ top: (nowMin! - from) * 1.2 + 8, width: ruleWidth }} /> : null}
             {timed.map((g) => {
               const t = byId.get(g.id)!;
               const s = sides(g);
               const fill = gameFill(g);
               const ink = inkOn(fill);
               const w = watchLine(g, myServices);
-              const l = lane.get(g.id) ?? 0;
+              const l = phone.lane.get(g.id) ?? 0;
+              const k = phone.width.get(g.id) ?? 1;
+              const laneW = `max(${MIN_LANE}px, ${100 / k}%)`;
               const time = g.timeValid ? formatTime(Date.parse(g.start)) : "TBC";
               return (
                 <li
@@ -125,29 +133,24 @@ export function TimelineView(props: ViewProps & { allCount: number; onSeeAll: ()
                   data-testid="game-row"
                   data-event={g.id}
                   className="absolute box-border p-0.5"
-                  style={{ top: (t.start - from) * 1.2 + 8, height: Math.max(56, (t.end - t.start) * 1.2), left: `${(l * 100) / lanes}%`, width: `${100 / lanes}%` }}
+                  style={{ top: (t.start - from) * 1.2 + 8, height: Math.max(56, (t.end - t.start) * 1.2), left: `calc(${l} * ${laneW})`, width: laneW }}
                 >
                   <div className="relative flex h-full flex-col overflow-hidden rounded-xl" style={{ background: fill, color: ink }}>
                     <button type="button" aria-haspopup="dialog" aria-label={`${matchupLabel(g)}, ${time}, ${w.outlet}. Every way to watch`} onClick={() => onOpen(g)} className="flex h-full flex-col items-start gap-1.5 p-2 text-left">
-                      {lanes >= 4 ? <TeamDisc team={s.first} size={26} /> : <TeamPair first={s.first} second={s.second} size={26} />}
+                      {k >= 3 ? <TeamDisc team={s.first} size={26} /> : <TeamPair first={s.first} second={s.second} size={26} />}
                       <span className="text-[13px] font-extrabold leading-tight">
                         {teamLabel(s.first, s.firstRank, true)} {s.sep} {teamLabel(s.second, s.secondRank, true)}
                       </span>
                       <span className="text-[11px] font-semibold">{time}</span>
                       <span className="mt-auto max-w-full truncate rounded-full bg-white px-2 py-0.5 text-[11px] font-extrabold text-[#111318]">{w.outlet}</span>
                     </button>
-                    {/* four or more lanes leave blocks too narrow for a pick button over the tap area; pick from the sheet instead */}
-                    {lanes < 4 ? (
-                      <PickButton game={g} priority={priorityOf(g.id)} onChange={(np) => onPriority(g, np)} compact className="absolute top-0 right-0" />
-                    ) : priorityOf(g.id) ? (
-                      // still show what's in the plan; the sheet announces it to screen readers
-                      <span aria-hidden="true" className={`absolute top-1.5 right-1.5 h-3 w-3 rounded-full border-2 border-white ${priorityOf(g.id) === "must" ? "bg-[#c42a18]" : "bg-[#111318]"}`} />
-                    ) : null}
+                    <PickButton game={g} priority={priorityOf(g.id)} onChange={(np) => onPriority(g, np)} compact className="absolute top-0 right-0" />
                   </div>
                 </li>
               );
             })}
           </ul>
+          </div>
         </div>
       ) : (
         // laptop: time runs across, clashes stack in lanes

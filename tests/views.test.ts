@@ -107,3 +107,22 @@ describe("freeLine", () => {
     expect(freeLine({ games: 2, name: "Fandango" })).toBe("2 free on Fandango");
   });
 });
+
+describe("clusterLanes", () => {
+  it("gives a game that clashes with nothing the full width, whatever happens later", async () => {
+    const { clusterLanes } = await import("@/lib/views");
+    const c = clusterLanes([
+      { id: "noon", start: 0, end: 100 },
+      { id: "a", start: 200, end: 300 },
+      { id: "b", start: 210, end: 300 },
+      { id: "c", start: 220, end: 300 },
+      { id: "d", start: 230, end: 300 },
+      { id: "late", start: 300, end: 400 },
+    ]);
+    expect(c.width.get("noon")).toBe(1);
+    expect(c.width.get("a")).toBe(4);
+    expect(c.width.get("late")).toBe(1);
+    expect(c.maxLanes).toBe(4);
+    expect(new Set(["a", "b", "c", "d"].map((id) => c.lane.get(id))).size).toBe(4);
+  });
+});

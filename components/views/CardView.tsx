@@ -44,8 +44,15 @@ export function CardView({ games, tz, day, myServices, priorityOf, onPriority, o
           // the band already shows ranks, so the caption skips "#5 in action" and "#7 v #19"
           const shownReasons = reasons?.get(g.id)?.filter((r) => !/^#\d+ (in action|v #\d+)$/.test(r));
           const why = shownReasons?.join(" · ") || [g.leagueShort, w.free ? "Free with antenna" : null, g.involvesLocal ? "Your team" : null].filter(Boolean).join(" · ");
-          // phones fit about eight poster characters per side, so longer names go to the abbreviation there
-          const phoneName = (t: typeof s.first, r: number | null) => (teamLabel(t, r).length > 8 ? teamLabel(t, r, true) : teamLabel(t, r)).toUpperCase();
+          // a 375px phone leaves about 80px per name: seven poster characters at 20px, eight at 17px,
+          // and longer names go to the abbreviation there
+          const phoneName = (t: typeof s.first, r: number | null) => {
+            const full = teamLabel(t, r);
+            if (full.length > 8) return { text: teamLabel(t, r, true).toUpperCase(), size: "text-xl" };
+            return { text: full.toUpperCase(), size: full.length > 7 ? "text-[17px]" : "text-xl" };
+          };
+          const n1 = phoneName(s.first, s.firstRank);
+          const n2 = phoneName(s.second, s.secondRank);
           return (
             <li key={g.id} data-testid="game-row" data-event={g.id} className="flex flex-col shadow-[0_1px_0_rgba(18,18,18,0.08)] [content-visibility:auto] [contain-intrinsic-size:auto_144px]">
               <button
@@ -59,16 +66,16 @@ export function CardView({ games, tz, day, myServices, priorityOf, onPriority, o
                 <span className="flex w-1/2 min-w-0 items-center gap-2 pl-2.5 pr-12 sm:gap-3.5 sm:pl-3.5">
                   <TeamDisc team={s.first} size={40} className="sm:hidden" />
                   <TeamDisc team={s.first} size={56} className="max-sm:hidden" />
-                  <span style={{ fontFamily: DISPLAY, color: inkOn(c1) }} className="truncate text-xl leading-tight sm:hidden">
-                    {phoneName(s.first, s.firstRank)}
+                  <span style={{ fontFamily: DISPLAY, color: inkOn(c1) }} className={`truncate ${n1.size} leading-tight sm:hidden`}>
+                    {n1.text}
                   </span>
                   <span style={{ fontFamily: DISPLAY, color: inkOn(c1) }} className="truncate text-[28px] leading-tight max-sm:hidden">
                     {teamLabel(s.first, s.firstRank).toUpperCase()}
                   </span>
                 </span>
                 <span className="flex w-1/2 min-w-0 items-center justify-end gap-2 pr-2.5 pl-12 sm:gap-3.5 sm:pr-3.5">
-                  <span style={{ fontFamily: DISPLAY, color: inkOn(c2) }} className="truncate text-right text-xl leading-tight sm:hidden">
-                    {phoneName(s.second, s.secondRank)}
+                  <span style={{ fontFamily: DISPLAY, color: inkOn(c2) }} className={`truncate text-right ${n2.size} leading-tight sm:hidden`}>
+                    {n2.text}
                   </span>
                   <span style={{ fontFamily: DISPLAY, color: inkOn(c2) }} className="truncate text-right text-[28px] leading-tight max-sm:hidden">
                     {teamLabel(s.second, s.secondRank).toUpperCase()}

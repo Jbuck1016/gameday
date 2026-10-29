@@ -29,6 +29,39 @@ export function assignLanes(spans: Span[]): { lane: Map<string, number>; lanes: 
   return { lane, lanes: ends.length };
 }
 
+/**
+ * Lanes per clash: games that never overlap anything keep the full width, and each group of
+ * overlapping games is laid out on its own, so one busy evening doesn't squeeze the morning.
+ * `width` is how many lanes a game's group needs.
+ */
+export function clusterLanes(spans: Span[]): { lane: Map<string, number>; width: Map<string, number>; maxLanes: number } {
+  const lane = new Map<string, number>();
+  const width = new Map<string, number>();
+  let maxLanes = 0;
+  const flush = (group: Span[]) => {
+    if (!group.length) return;
+    const g = assignLanes(group);
+    for (const s of group) {
+      lane.set(s.id, g.lane.get(s.id)!);
+      width.set(s.id, g.lanes);
+    }
+    maxLanes = Math.max(maxLanes, g.lanes);
+  };
+  let group: Span[] = [];
+  let end = -Infinity;
+  for (const s of [...spans].sort((a, b) => a.start - b.start || a.end - b.end || a.id.localeCompare(b.id))) {
+    if (group.length && s.start >= end) {
+      flush(group);
+      group = [];
+      end = -Infinity;
+    }
+    group.push(s);
+    end = Math.max(end, s.end);
+  }
+  flush(group);
+  return { lane, width, maxLanes };
+}
+
 /** Stretches of time with two or more games on at once, and how many. */
 export function overlapBands(spans: Span[]): { from: number; to: number; n: number }[] {
   const pts = Array.from(new Set(spans.flatMap((s) => [s.start, s.end]))).sort((a, b) => a - b);

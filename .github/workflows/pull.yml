@@ -1,0 +1,50 @@
+# Fetches files from the live site's API or ESPN's logo CDN and commits them to the
+# x-graphics branch under pulls/<name>/, so a session without access to those hosts can
+# read them over git. Only those two hosts are allowed.
+name: Pull files
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: Folder name under pulls/
+        required: true
+      urls:
+        description: Space-separated "file=url" pairs
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch
+        env:
+          NAME: ${{ inputs.name }}
+          URLS: ${{ inputs.urls }}
+        run: |
+          set -euo pipefail
+          [[ "$NAME" =~ ^[A-Za-z0-9_-]{1,40}$ ]] || { echo "bad name"; exit 1; }
+          mkdir out
+          for pair in $URLS; do
+            file="${pair%%=*}"; url="${pair#*=}"
+            [[ "$file" =~ ^[A-Za-z0-9_.-]{1,80}$ ]] || { echo "bad file $file"; exit 1; }
+            [[ "$url" =~ ^https://(gameday-tau-seven\.vercel\.app|a\.espncdn\.com)/ ]] || { echo "host not allowed: $url"; exit 1; }
+            curl -fsS --retry 2 -o "out/$file" "$url" || echo "failed: $url"
+          done
+          ls -la out
+      - name: Commit to the x-graphics branch
+        env:
+          NAME: ${{ inputs.name }}
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@users.noreply.github.com"
+          url="https://x-access-token:${TOKEN}@github.com/${REPO}.git"
+          git clone --depth 1 --branch x-graphics "$url" store
+          mkdir -p "store/pulls/$NAME" && cp out/* "store/pulls/$NAME/"
+          cd store && git add -A && git commit -qm "Pull $NAME" && git push -q origin x-graphics

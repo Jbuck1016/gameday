@@ -1,5 +1,5 @@
-# Renders the X post graphics for a shared plan from the live site and keeps them as a
-# downloadable workflow artifact (Actions > X graphics > run > artifacts).
+# Renders the X post graphics for a shared plan from the live site and commits them to the
+# branch x-graphics, under <plan>/ (also kept as a workflow artifact for 14 days).
 name: X graphics
 
 on:
@@ -16,7 +16,7 @@ on:
         default: slate crunch cover
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   render:
@@ -39,6 +39,21 @@ jobs:
             done
           done
           ls -la out
+      - name: Commit to the x-graphics branch
+        env:
+          PLAN: ${{ inputs.plan }}
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@users.noreply.github.com"
+          url="https://x-access-token:${TOKEN}@github.com/${REPO}.git"
+          if git clone --depth 1 --branch x-graphics "$url" store 2>/dev/null; then :; else
+            mkdir store && cd store && git init -q -b x-graphics && git remote add origin "$url" && cd ..
+          fi
+          mkdir -p "store/$PLAN" && cp out/*.png "store/$PLAN/"
+          cd store && git add -A && git commit -qm "X graphics for plan $PLAN" && git push -q origin x-graphics
       - uses: actions/upload-artifact@v4
         with:
           name: x-graphics-${{ inputs.plan }}

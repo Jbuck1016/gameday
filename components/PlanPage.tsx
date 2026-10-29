@@ -296,38 +296,43 @@ export function PlanPage() {
         <h2 id="share-h" className="label text-sm">
           Share this day
         </h2>
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="text-sm text-muted" htmlFor="card-size">
-            Size
-          </label>
-          <select id="card-size" className="input w-auto" value={size} onChange={(e) => setSize(e.target.value as Size)}>
-            <option value="portrait">Post (4:5)</option>
-            <option value="wide">Wide (16:9), for X</option>
-            <option value="story">Story (9:16)</option>
-            <option value="square">Square</option>
-          </select>
-          <label className="text-sm text-muted" htmlFor="card-theme">
-            Look
-          </label>
-          {size === "wide" ? (
-            <select id="card-theme" className="input w-auto" value={wideLook} onChange={(e) => setWideLook(e.target.value as WideLook)}>
-              {WIDE_LOOKS.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.label}
-                </option>
-              ))}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          {/* each label stays with its menu when the row wraps on a phone */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted" htmlFor="card-size">
+              Size
+            </label>
+            <select id="card-size" className="input w-auto" value={size} onChange={(e) => setSize(e.target.value as Size)}>
+              <option value="portrait">Post (4:5)</option>
+              <option value="wide">Wide (16:9), for X</option>
+              <option value="story">Story (9:16)</option>
+              <option value="square">Square</option>
             </select>
-          ) : (
-            <select id="card-theme" className="input w-auto" value={themeId} onChange={(e) => setTheme(e.target.value as typeof themeId)}>
-              {THEME_IDS.map((t) => (
-                <option key={t} value={t}>
-                  {THEMES[t].label}
-                </option>
-              ))}
-            </select>
-          )}
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted" htmlFor="card-theme">
+              Look
+            </label>
+            {size === "wide" ? (
+              <select id="card-theme" className="input w-auto" value={wideLook} onChange={(e) => setWideLook(e.target.value as WideLook)}>
+                {WIDE_LOOKS.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <select id="card-theme" className="input w-auto" value={themeId} onChange={(e) => setTheme(e.target.value as typeof themeId)}>
+                {THEME_IDS.map((t) => (
+                  <option key={t} value={t}>
+                    {THEMES[t].label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
           {size === "wide" ? (
-            <>
+            <div className="flex items-center gap-2">
               <label className="text-sm text-muted" htmlFor="card-kind">
                 Show
               </label>
@@ -338,7 +343,7 @@ export function PlanPage() {
                   </option>
                 ))}
               </select>
-            </>
+            </div>
           ) : null}
         </div>
         <div className="flex flex-wrap gap-2">

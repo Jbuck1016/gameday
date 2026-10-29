@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePrefs, gamesQuery, type Prefs } from "@/lib/prefs";
 import type { Game, PlanItem, Priority } from "@/lib/types";
 import { THEMES, THEME_IDS, SITE_THEME, barStyle } from "@/lib/themes";
@@ -77,6 +77,12 @@ export function PlanPage() {
   const { ready, prefs, update, setPriority, theme: themeId, setTheme, defaultDay, meta, account } = usePrefs();
   const tz = prefs.tz;
   const [shareOpen, setShareOpen] = useState(false);
+  // the rendered image, shown in the panel when the phone won't hand it to the share sheet
+  const [preview, setPreview] = useState<string | null>(null);
+  const shareHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (shareOpen) shareHeading.current?.focus();
+  }, [shareOpen]);
   const days = useMemo(() => planDays(prefs.plan.map((i) => i.start), tz), [prefs.plan, tz]);
   const [day, setDay] = useState<string | null>(null);
   const [tab, setTab] = useState<"day" | "week">("day");
@@ -189,14 +195,38 @@ export function PlanPage() {
       const res = await fetch(url);
       if (!res.ok) throw new Error("Couldn't render the image. Try again in a moment.");
       const blob = await res.blob();
+      const name = wide ? `gameday-${day}-${wideKind}-${wideLook}.png` : `gameday-${day}-${themeId}.png`;
+      const file = new File([blob], name, { type: "image/png" });
+      const props: Record<string, string> = wide ? { look: wideLook, kind: wideKind, size } : { theme: themeId, size };
+      const touch = window.matchMedia("(pointer: coarse)").matches;
+      if (preview) URL.revokeObjectURL(preview);
+      setPreview(null);
+      // Phones: hand the image to the share sheet (post to X, save to Photos). Desktop: download.
+      if (touch && navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file] });
+          track("card_exported", { ...props, via: "share_sheet" });
+          setMsg("Image ready.");
+          return;
+        } catch (e) {
+          if ((e as Error).name === "AbortError") return;
+          // the share sheet can refuse after the wait for the render; show the image instead
+        }
+      }
+      if (touch) {
+        setPreview(URL.createObjectURL(blob));
+        track("card_exported", { ...props, via: "preview" });
+        setMsg("Press and hold the image to save or share it.");
+        return;
+      }
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = wide ? `gameday-${day}-${wideKind}-${wideLook}.png` : `gameday-${day}-${themeId}.png`;
+      a.download = name;
       document.body.appendChild(a);
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
-      track("card_exported", wide ? { look: wideLook, kind: wideKind, size } : { theme: themeId, size });
+      track("card_exported", { ...props, via: "download" });
       setMsg("Image saved.");
     });
 
@@ -260,40 +290,9 @@ export function PlanPage() {
         </div>
       </div>
 
-      {tab === "week" && day && (
-        <WeekView
-          items={prefs.plan}
-          tz={tz}
-          startDay={day}
-          leagueMinutes={leagueMinutes}
-          onPick={(d) => {
-            setDay(d);
-            setTab("day");
-          }}
-        />
-      )}
-
-      {tab === "day" && day && games === null && <p className="py-10 text-center text-muted">Loading your day…</p>}
-      {tab === "day" && day && games !== null && (
-        <PlanView
-          games={games}
-          priorities={priorities}
-          day={day}
-          days={days}
-          onDay={setDay}
-          tz={tz}
-          themeId={SITE_THEME}
-          myServices={prefs.services}
-          areaLabel={prefs.area?.label ?? null}
-          live={live}
-          serviceNames={serviceNames}
-          onPriority={(g, p) => setPriority(g, p)}
-        />
-      )}
-
       {shareOpen && (
       <section id="share-panel" aria-labelledby="share-h" className="panel space-y-4 p-4">
-        <h2 id="share-h" className="label text-sm">
+        <h2 id="share-h" ref={shareHeading} tabIndex={-1} className="label text-sm outline-none">
           Share this day
         </h2>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -362,8 +361,44 @@ export function PlanPage() {
             {msg}
           </p>
         )}
+        {preview ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={preview} alt="Your plan as an image" className="w-full rounded-lg border border-line" />
+        ) : null}
       </section>
       )}
+
+      {tab === "week" && day && (
+        <WeekView
+          items={prefs.plan}
+          tz={tz}
+          startDay={day}
+          leagueMinutes={leagueMinutes}
+          onPick={(d) => {
+            setDay(d);
+            setTab("day");
+          }}
+        />
+      )}
+
+      {tab === "day" && day && games === null && <p className="py-10 text-center text-muted">Loading your day…</p>}
+      {tab === "day" && day && games !== null && (
+        <PlanView
+          games={games}
+          priorities={priorities}
+          day={day}
+          days={days}
+          onDay={setDay}
+          tz={tz}
+          themeId={SITE_THEME}
+          myServices={prefs.services}
+          areaLabel={prefs.area?.label ?? null}
+          live={live}
+          serviceNames={serviceNames}
+          onPriority={(g, p) => setPriority(g, p)}
+        />
+      )}
+
 
       {account === null && prefs.plan.length >= 2 && (
         <p className="text-sm">

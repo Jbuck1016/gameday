@@ -264,3 +264,17 @@ test.describe("accessibility scan", () => {
     });
   }
 });
+
+test.describe("sharing on a phone", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  test("tapping Share puts the share options on screen", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Looks right" }).click();
+    await page.getByRole("button", { name: /^Plan these/ }).click();
+    await expect(page).toHaveURL(/\/plan/);
+    await expect(page.getByTestId("plan-game").first()).toBeVisible();
+    await page.getByRole("button", { name: "Share" }).tap();
+    await expect(page.getByRole("button", { name: "Export image" })).toBeInViewport();
+    await expect(page.getByRole("heading", { name: "Share this day" })).toBeFocused();
+  });
+});

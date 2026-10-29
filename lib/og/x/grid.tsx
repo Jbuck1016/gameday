@@ -2,9 +2,12 @@
 // colour, stacked where games clash, on the site's white Daylight ground. One signal colour
 // (orange) marks the busiest clash.
 
-import { X_H, X_W, inkOn, type XData, type XRow } from "./data";
+import { X_H, X_W, freeLine, inkOn, type XData, type XRow } from "./data";
 import { Logo, col, row, sideLabel } from "./kit";
 import { minutesIntoDay } from "@/lib/time";
+
+/** Logos sit side by side with a small gap, never overlapping. */
+const logoGap = (logo: number) => Math.max(4, Math.round(logo * 0.08));
 
 const INK = "#111318";
 const MUTED = "#5F6673";
@@ -44,7 +47,7 @@ function Footer({ d, label, pills = true }: { d: XData; label: string; pills?: b
           </div>
         ))}
         {pills && d.free && !d.services.some((s) => s.free) ? (
-          <div style={{ display: "flex", fontFamily: FONT, fontWeight: 700, fontSize: 24, color: MUTED, marginLeft: 6 }}>{`${d.free.games} free with an ${d.free.name.toLowerCase()}`}</div>
+          <div style={{ display: "flex", fontFamily: FONT, fontWeight: 700, fontSize: 24, color: MUTED, marginLeft: 6 }}>{freeLine(d.free)}</div>
         ) : null}
       </div>
       <div style={{ display: "flex", fontFamily: FONT, fontWeight: 700, fontSize: 24, color: INK }}>{`Plan yours · ${d.host}`}</div>
@@ -90,7 +93,7 @@ type Sizes = { laneH: number; logo: number; text: number };
 function layout(d: XData, rows: XRow[], from: number, to: number, z: Sizes, big: boolean) {
   const span = to - from;
   const x = (ms: number) => Math.max(0, Math.min(TW, ((minutesIntoDay(ms, d.dayKey, d.tz) - from) / span) * TW));
-  const logosW = z.logo * 2 - Math.round(z.logo * 0.28) + 16;
+  const logosW = z.logo * 2 + logoGap(z.logo) + 16;
   const { placed, lanes } = place(rows, x, logosW + z.text * 5 + 20, z.text * 6 + 20);
   return { ...z, placed, lanes };
 }
@@ -101,7 +104,7 @@ function TimelineView({ d, from, to, laneH, logo, text, big, placed, lanes }: { 
   const full = (r: XRow) => `${sideLabel(r.first)} ${r.sep} ${sideLabel(r.second)}`;
   const short = (r: XRow) => `${r.first.abbr} ${r.sep} ${r.second.abbr}`;
   const textW = (t: string, size: number) => t.length * size * 0.64;
-  const logosW = logo * 2 - Math.round(logo * 0.28) + 16;
+  const logosW = logo * 2 + logoGap(logo) + 16;
   const chipW = (r: XRow) => textW(r.outlet, Math.round(text * 0.8)) + 30;
   // Inside a bar: logos first, then the channel chip, then the longest label that still fits.
   // Logos already say who's playing, so the label is the first thing to go.
@@ -168,7 +171,7 @@ function TimelineView({ d, from, to, laneH, logo, text, big, placed, lanes }: { 
               >
                 <div style={row({ flexShrink: 0 })}>
                   <Logo side={r.first} size={logo} ring={3} />
-                  <Logo side={r.second} size={logo} ring={3} style={{ marginLeft: -Math.round(logo * 0.28) }} />
+                  <Logo side={r.second} size={logo} ring={3} style={{ marginLeft: logoGap(logo) }} />
                 </div>
                 {!labelOutside ? (
                   <div style={{ display: "flex", flexGrow: 1, fontFamily: FONT, fontWeight: 800, fontSize: label(r, w)?.size ?? text, color: ink, letterSpacing: -0.5, whiteSpace: "nowrap" }}>
@@ -249,7 +252,7 @@ export function GridCover({ d }: { d: XData }) {
         d={d}
         title={`${paid.length} ${paid.length === 1 ? "subscription" : "subscriptions"}`}
         sub={`cover all ${total} of ${d.weekday}'s games · ${d.date}`}
-        signal={d.free ? `${d.free.games} free with an ${d.free.name.toLowerCase()}` : undefined}
+        signal={d.free ? freeLine(d.free) : undefined}
       />
       <div style={col({ gap: 30, marginTop: 30 })}>
         {lines.map((s) => (
@@ -264,7 +267,7 @@ export function GridCover({ d }: { d: XData }) {
               {s.gameIds.map((id) => byId.get(id)).filter((r): r is XRow => Boolean(r)).map((r) => (
                 <div key={r.id} style={row({})}>
                   <Logo side={r.first} size={64} ring={3} ringColor="#F1F3F6" />
-                  <Logo side={r.second} size={64} ring={3} ringColor="#F1F3F6" style={{ marginLeft: -16 }} />
+                  <Logo side={r.second} size={64} ring={3} ringColor="#F1F3F6" style={{ marginLeft: 8 }} />
                 </div>
               ))}
             </div>

@@ -21,8 +21,32 @@ export function TeamMark({ logo, abbr, size = 22 }: { logo: string | null | unde
 
 const NEXT: Record<string, Priority | null> = { none: "want", want: "must", must: null };
 
+export type PickTone = "light" | "board" | "card";
+
+// colours per view: the site's own, the dark departures board, and the poster card
+const TONES: Record<PickTone, Record<"none" | "want" | "must", string>> = {
+  light: { none: "btn-outline bg-surface text-ink", want: "bg-want text-ink", must: "bg-ink text-ground" },
+  board: { none: "bg-[#1b1c1f] text-[#f1eadb]", want: "bg-[#e8eaef] text-[#0b0b0c]", must: "bg-[#ffb21a] text-[#0b0b0c]" },
+  card: { none: "border-[1.5px] border-[#121212] bg-white text-[#121212]", want: "bg-[#121212] text-white", must: "bg-[#e3301c] text-white" },
+};
+
 /** One round button: tap for Want, again for Must, again to remove. */
-export function PickButton({ game, priority, onChange }: { game: Game; priority: Priority | null; onChange: (p: Priority | null) => void }) {
+export function PickButton({
+  game,
+  priority,
+  onChange,
+  tone = "light",
+  compact = false,
+  className = "",
+}: {
+  game: Game;
+  priority: Priority | null;
+  onChange: (p: Priority | null) => void;
+  tone?: PickTone;
+  /** a 30px circle inside the same 44px tap area, for tight spots like timeline blocks */
+  compact?: boolean;
+  className?: string;
+}) {
   const label = matchupLabel(game);
   const state = priority ?? "none";
   const aria = state === "none" ? `Add ${label} to plan` : state === "want" ? `${label}: want to watch. Tap for must watch` : `${label}: must watch. Tap to remove`;
@@ -32,10 +56,9 @@ export function PickButton({ game, priority, onChange }: { game: Game; priority:
       aria-label={aria}
       data-priority={state}
       onClick={() => onChange(NEXT[state])}
-      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 ${
-        state === "must" ? "bg-ink text-ground" : state === "want" ? "bg-want text-ink" : "btn-outline bg-surface text-ink"
-      }`}
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 ${compact ? "" : TONES[tone][state]} ${className}`}
     >
+      <span className={compact ? `flex h-[30px] w-[30px] items-center justify-center rounded-full ${TONES[tone][state]}` : "contents"}>
       {state === "must" ? (
         <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 2l2.9 6.6 7.1.7-5.3 4.8 1.6 7L12 17.5 5.7 21l1.6-7L2 9.3l7.1-.7z" />
@@ -49,6 +72,7 @@ export function PickButton({ game, priority, onChange }: { game: Game; priority:
           <path d="M12 5v14M5 12h14" />
         </svg>
       )}
+      </span>
     </button>
   );
 }

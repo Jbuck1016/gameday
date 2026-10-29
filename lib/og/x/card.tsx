@@ -2,7 +2,7 @@
 // with the kickoff and channel in a tag on the seam; the clash is drawn as an actual quad box.
 // Warm paper ground, heavy condensed type, one red for must-watch and the clash.
 
-import { X_H, X_W, inkOn, pickRows, type XData, type XRow } from "./data";
+import { X_H, X_W, freeLine, inkOn, pickRows, type XData, type XRow } from "./data";
 import { Logo, col, row } from "./kit";
 
 const PAPER = "#F2EDE3";
@@ -65,7 +65,7 @@ export function CardSlate({ d }: { d: XData }) {
           <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 700, fontSize: 26, letterSpacing: 3, color: INK }}>YOU NEED</div>
           <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 40, color: INK, lineHeight: 1.1 }}>{up(d.services.map((s) => s.name).join(" + "))}</div>
           {d.free && !d.services.some((s) => s.free) ? (
-            <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 700, fontSize: 26, color: RED }}>{up(`${d.free.games} free with an ${d.free.name}`)}</div>
+            <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 700, fontSize: 26, color: RED }}>{up(freeLine(d.free))}</div>
           ) : null}
           <div style={col({ gap: 8, marginTop: 16 })}>
             <div style={{ display: "flex", alignSelf: "flex-start", fontFamily: DISPLAY, fontSize: 44, color: PAPER, background: INK, padding: "2px 14px", whiteSpace: "nowrap" }}>GAME DAY</div>

@@ -30,8 +30,11 @@ test.describe("first visit to an exported card", () => {
     await dortmund.getByRole("button", { name: /^Add .* to plan$/ }).click();
 
     // tapping the game itself shows every way to watch
-    await arsenal.getByRole("button", { name: /Arsenal/, expanded: false }).click();
-    await expect(arsenal.getByText("Likely, not announced").first()).toBeVisible();
+    await arsenal.getByRole("button", { name: /Arsenal.*Every way to watch/ }).click();
+    const sheet = page.getByRole("dialog");
+    await expect(sheet.getByText("Likely, not announced").first()).toBeVisible();
+    await sheet.getByRole("button", { name: "Close" }).click();
+    await expect(sheet).toBeHidden();
 
     await page.getByRole("link", { name: /Your day · 3 games/ }).click();
     await expect(page.getByTestId("plan-game")).toHaveCount(3);
@@ -277,4 +280,61 @@ test.describe("sharing on a phone", () => {
     await expect(page.getByRole("button", { name: "Export image" })).toBeInViewport();
     await expect(page.getByRole("heading", { name: "Share this day" })).toBeFocused();
   });
+});
+
+test.describe("today's three views", () => {
+  test("switching views keeps the games and the pick, and the choice lives in the URL", async ({ page }) => {
+    await page.goto("/?show=all");
+    await page.getByRole("button", { name: "Looks right" }).click();
+    for (const view of ["Board", "Timeline", "Card"]) {
+      await page.getByRole("group", { name: "View" }).getByRole("button", { name: view }).click();
+      await expect(page.getByRole("button", { name: view, pressed: true })).toBeVisible();
+      if (view === "Card") await expect(page).not.toHaveURL(/view=/);
+      else await expect(page).toHaveURL(new RegExp(`view=${view.toLowerCase()}`));
+      const row = page.getByTestId("game-row").first();
+      await expect(row).toBeVisible();
+      // the pick works in every view and stays in sync across them
+      const pick = row.getByRole("button", { name: /to plan$|Tap for must|Tap to remove/ });
+      const before = await pick.getAttribute("data-priority");
+      await pick.click();
+      await expect(row.locator("[data-priority]")).not.toHaveAttribute("data-priority", before!);
+      // every way to watch, from the game itself
+      await row.getByRole("button", { name: /Every way to watch/ }).click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog")).toBeHidden();
+    }
+  });
+
+  test("the last view is remembered on the next visit", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Board" }).click();
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Board", pressed: true })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Kickoffs board" })).toBeVisible();
+  });
+
+  test("the timeline caps a busy day and points to the board", async ({ page }) => {
+    await page.goto("/?show=all&view=timeline");
+    await expect(page.getByText(/The 12 biggest of \d+/)).toBeVisible();
+    await expect(page.getByTestId("game-row")).toHaveCount(12);
+    await page.getByRole("button", { name: "See every game on the Board" }).click();
+    await expect(page).toHaveURL(/view=board/);
+  });
+
+  for (const view of ["card", "timeline", "board"]) {
+    test(`${view} view: no sideways scroll on a phone and no serious axe violations`, async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(`/?view=${view}`);
+      await expect(page.getByTestId("game-row").first()).toBeVisible();
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow).toBeLessThanOrEqual(0);
+      await page.screenshot({ path: `${SHOTS}/view-${view}-phone.png`, fullPage: true });
+      const { default: AxeBuilder } = await import("@axe-core/playwright");
+      await page.waitForLoadState("networkidle");
+      const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+      const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+      expect(serious.map((v) => `${v.id}: ${v.nodes.length} (${v.nodes[0]?.target.join(" ")})`)).toEqual([]);
+    });
+  }
 });

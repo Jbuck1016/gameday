@@ -67,7 +67,8 @@ export function scoreGame(g: Game, nowMs: number): Featured | null {
     score += 30 + (ranks.some((r) => r <= 10) ? 8 : 0);
     reasons.push(`#${Math.min(...ranks)} v #${Math.max(...ranks)}`);
   } else if (ranks.length === 1) {
-    score += 10 + (ranks[0] <= 10 ? 6 : 0);
+    // a top-10 team scores 16 (#10) up to 34 (#1), so a #1 or #2 team beats two ranked teams outside the top 10 (30)
+    score += 10 + (ranks[0] <= 10 ? 6 + (10 - ranks[0]) * 2 : 0);
     reasons.push(`#${ranks[0]} in action`);
   }
 

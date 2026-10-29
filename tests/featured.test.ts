@@ -86,3 +86,30 @@ describe("calendar feed", () => {
     expect(ics).not.toContain("BEGIN:VEVENT");
   });
 });
+
+describe("best games: ranked teams", () => {
+  const T = Date.parse("2026-10-31T16:00:00Z");
+  const g = (id: string, h: number, homeRank: number | null, awayRank: number | null, net: string): Game => ({
+    id, leagueId: "college-football", leagueShort: "CFB", leagueName: "College Football", sport: "football",
+    start: new Date(T + h * 3_600_000).toISOString(), timeValid: true, status: "pre", name: id, home: null, away: null,
+    homeRank, awayRank, venue: null, involvesLocal: false, durationMin: 210,
+    outlets: [{ outlet: net, basis: "national", confidence: "confirmed", note: null, services: [] }],
+  });
+
+  it("puts the #1 and #2 teams ahead of a #13 v #22 game when the league cap bites", () => {
+    // Saturday 31 Oct: the three college slots went to UGA-FLA, ARIZ-TTU and ND-Navy, leaving out #1 and #2
+    const day = [g("fla-uga", 3.5, 3, 17, "ABC"), g("ariz-ttu", 0, 13, 22, "ESPN"), g("nd-navy", 0, null, 5, "ABC"), g("osu-usc", 7.5, null, 2, "NBC"), g("mia-unc", 7.5, null, 1, "ABC")];
+    const ids = featuredGames(day, 0).map((f) => f.game.id);
+    expect(ids).toEqual(expect.arrayContaining(["fla-uga", "osu-usc", "mia-unc"]));
+    expect(ids).not.toContain("ariz-ttu");
+  });
+});
+
+describe("single-ranked scoring", () => {
+  it("never scores a top-10 team below a flat 16, and ranks #1 above #10", () => {
+    const base = { leagueId: "college-football", sport: "football", status: "pre", start: "2026-10-31T19:30:00Z", timeValid: true, durationMin: 210, outlets: [], involvesLocal: false, homeRank: null } as const;
+    const s = (r: number) => scoreGame({ ...(base as object), id: `r${r}`, awayRank: r } as never, 0)?.score ?? 0;
+    expect(s(1)).toBeGreaterThan(s(10));
+    expect(s(10) - s(20)).toBeGreaterThanOrEqual(6);
+  });
+});

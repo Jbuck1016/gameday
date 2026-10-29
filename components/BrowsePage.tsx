@@ -4,14 +4,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { usePrefs, gamesQuery } from "@/lib/prefs";
-import type { Game } from "@/lib/types";
+import type { Game, Priority } from "@/lib/types";
 import { THEMES, SITE_THEME } from "@/lib/themes";
 import { addDays, dateKey, dayParts, formatDayLabel, localDayRange, todayKey } from "@/lib/time";
 import { isRanked } from "@/lib/games";
 import { featuredGames } from "@/lib/featured";
-import { track } from "@/lib/track";
-import { GameRow } from "./GameRow";
+import { setTrackContext, track } from "@/lib/track";
+import { DEFAULT_VIEW, isViewId, type ViewId } from "@/lib/views";
 import { AreaBanner } from "./AreaSetup";
+import { CardView } from "./views/CardView";
+import { BoardView } from "./views/BoardView";
+import { TimelineView, timelineGames } from "./views/TimelineView";
+import { GameSheet } from "./views/GameSheet";
 
 type Filter = "best" | "mine" | "all" | "live";
 const FILTERS: { id: Filter; label: string }[] = [
@@ -20,6 +24,79 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "live", label: "Live" },
 ];
+
+const VIEWS: { id: ViewId; label: string; icon: React.ReactNode }[] = [
+  {
+    id: "card",
+    label: "Card",
+    icon: (
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M3 7l9-4 9 4-9 4z" />
+        <path d="M3 12l9 4 9-4M3 17l9 4 9-4" />
+      </svg>
+    ),
+  },
+  {
+    id: "timeline",
+    label: "Timeline",
+    icon: (
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+        <path d="M4 6h9M8 12h12M4 18h7" />
+      </svg>
+    ),
+  },
+  {
+    id: "board",
+    label: "Board",
+    icon: (
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="3" y="4" width="18" height="16" rx="2" />
+        <path d="M3 9h18M3 14h18" />
+      </svg>
+    ),
+  },
+];
+const VIEW_KEY = "gameday:view";
+
+// the URL wins (a shared link), then the visitor's last choice, then the default
+function readView(): ViewId {
+  const q = new URLSearchParams(window.location.search).get("view");
+  if (isViewId(q)) return q;
+  try {
+    const v = window.localStorage.getItem(VIEW_KEY);
+    if (isViewId(v)) return v;
+  } catch {
+    // storage blocked
+  }
+  return DEFAULT_VIEW;
+}
+
+/** Placeholder shaped like the view that's loading, so nothing jumps when games arrive. */
+function ViewSkeleton({ view }: { view: ViewId }) {
+  if (view === "board")
+    return (
+      <div aria-hidden="true" className="-mx-4 mt-3 h-[520px] bg-[#0b0b0c] px-4 pt-6 sm:mx-0 sm:rounded-2xl">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="mb-6 h-6 w-full rounded bg-[#1b1c1f]" />
+        ))}
+      </div>
+    );
+  if (view === "timeline")
+    return (
+      <div aria-hidden="true" className="mt-3 grid h-[480px] grid-cols-3 gap-1 pl-10">
+        <div className="mt-6 h-56 rounded-xl bg-surface2" />
+        <div className="mt-20 h-48 rounded-xl bg-surface2" />
+        <div className="mt-40 h-60 rounded-xl bg-surface2" />
+      </div>
+    );
+  return (
+    <div aria-hidden="true" className="-mx-4 mt-3 space-y-3.5 bg-[#f2ede3] px-4 pt-20 pb-4 sm:mx-0 sm:rounded-2xl">
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="h-36 bg-[#e4ded2]" />
+      ))}
+    </div>
+  );
+}
 
 function readFilter(): Filter {
   const f = new URLSearchParams(window.location.search).get("show");
@@ -38,14 +115,26 @@ export function BrowsePage() {
   const [games, setGames] = useState<Game[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(0);
+  const [view, setView] = useState<ViewId>(DEFAULT_VIEW);
+  const [open, setOpen] = useState<Game | null>(null);
 
   useEffect(() => {
     if (!ready || !meta || day !== null) return;
     const q = new URLSearchParams(window.location.search).get("day");
     setDay(q && /^\d{4}-\d{2}-\d{2}$/.test(q) ? q : defaultDay);
     setFilter(readFilter());
+    const v = readView();
+    setView(v);
+    setTrackContext({ view: v });
     setNow(Date.now());
   }, [ready, meta, day, defaultDay]);
+
+  // keep LIVE, NEXT and the now line current while the page is open
+  useEffect(() => {
+    if (!now) return;
+    const t = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, [now === 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tz = prefs.tz;
   const teamsKey = prefs.localTeams.map((t) => t.id).join(",");
@@ -78,6 +167,20 @@ export function BrowsePage() {
     else q.set("show", f);
     window.history.replaceState(null, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
   };
+  const pickView = (v: ViewId) => {
+    setView(v);
+    setTrackContext({ view: v });
+    track("view_changed", { to: v });
+    try {
+      window.localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      // storage blocked: the URL still carries it
+    }
+    const q = new URLSearchParams(window.location.search);
+    if (v === DEFAULT_VIEW) q.delete("view");
+    else q.set("view", v);
+    window.history.replaceState(null, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
+  };
   const pickDay = (d: string) => {
     setDay(d);
     const q = new URLSearchParams(window.location.search);
@@ -106,6 +209,16 @@ export function BrowsePage() {
     });
   }, [games, search, filter, featured, leagues, allCbb, priorityOf]);
 
+  // The timeline's capped set is chosen when the list itself changes, not when a pick changes,
+  // so unpicking a game never makes it vanish from under the finger. Shown in kickoff order.
+  const visibleKey = visible.map((g) => g.id).join(",");
+  const timelineIds = useMemo(
+    () => new Set(timelineGames(visible, priorityOf).map((g) => g.id)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [visibleKey],
+  );
+  const timelineList = useMemo(() => visible.filter((g) => timelineIds.has(g.id)).sort((a, b) => Date.parse(a.start) - Date.parse(b.start)), [visible, timelineIds]);
+
   const hiddenCbb = games?.filter((g) => g.leagueId === "mens-college-basketball").length ?? 0;
   const toggleLeague = (id: string) => setLeagues((ls) => (ls.includes(id) ? ls.filter((x) => x !== id) : [...ls, id]));
 
@@ -121,6 +234,23 @@ export function BrowsePage() {
   };
 
   const musts = prefs.plan.filter((i) => i.priority === "must").length;
+  const viewProps = {
+    games: visible,
+    tz,
+    day: day ?? "",
+    // demo data is a past weekend: show it as if it hadn't started, rather than all finished
+    nowMs: isToday ? now : meta?.fixtureMode ? 0 : now || Date.now(),
+    isToday,
+    myServices: prefs.services,
+    priorityOf,
+    onPriority: (g: Game, p: Priority | null) => setPriority(g, p),
+    onOpen: (g: Game) => {
+      setOpen(g);
+      track("game_opened", { league: g.leagueId });
+    },
+    formatTime: (ms: number) => theme.formatTime(ms, tz),
+    listTestId: filter === "best" ? "best-today" : undefined,
+  };
   const parts = day ? dayParts(day) : null;
 
   return (
@@ -163,6 +293,21 @@ export function BrowsePage() {
         ))}
       </div>
 
+      <div role="group" aria-label="View" className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-surface2 p-1 sm:ml-auto sm:max-w-[360px]">
+        {VIEWS.map((v) => (
+          <button
+            key={v.id}
+            type="button"
+            aria-pressed={view === v.id}
+            onClick={() => pickView(v.id)}
+            className={`flex h-11 items-center justify-center gap-1.5 rounded-[9px] text-[13px] ${view === v.id ? "bg-surface font-bold text-ink shadow-[0_1px_2px_rgba(17,19,24,0.12)]" : "font-semibold text-muted"}`}
+          >
+            {v.icon}
+            {v.label}
+          </button>
+        ))}
+      </div>
+
       {filter === "all" && (
         <div className="mt-3 space-y-2">
           <div className="flex flex-wrap gap-1.5" role="group" aria-label="Leagues">
@@ -193,20 +338,7 @@ export function BrowsePage() {
       )}
 
       {error && <p className="panel mt-4 p-4 text-sm">{error}</p>}
-      {!error && games === null && (
-        <ul className="mt-2" aria-hidden="true">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <li key={i} className="flex items-center gap-3 border-b border-line py-3">
-              <span className="h-9 w-12 rounded bg-surface2" />
-              <span className="flex flex-1 flex-col gap-2">
-                <span className="h-4 w-3/5 rounded bg-surface2" />
-                <span className="h-3 w-2/5 rounded bg-surface2" />
-              </span>
-              <span className="h-11 w-11 rounded-full bg-surface2" />
-            </li>
-          ))}
-        </ul>
-      )}
+      {!error && games === null && <ViewSkeleton view={view} />}
       {games !== null && visible.length === 0 && (
         <p className="py-10 text-center text-sm text-muted">
           {filter === "live"
@@ -236,20 +368,24 @@ export function BrowsePage() {
         </p>
       )}
 
-      <ul className="row-list mt-1" data-testid={filter === "best" ? "best-today" : undefined}>
-        {visible.map((g) => (
-          <GameRow
-            key={g.id}
-            game={g}
-            theme={theme}
-            tz={tz}
-            myServices={prefs.services}
-            priority={priorityOf(g.id)}
-            onPriority={(p) => setPriority(g, p)}
-            reasons={filter === "best" ? reasonsById.get(g.id)?.filter((r) => r !== "Your team" && !/^#\d+ in action$/.test(r)) : undefined}
-          />
-        ))}
-      </ul>
+      {games !== null && visible.length > 0 && day ? (
+        view === "board" ? (
+          <BoardView {...viewProps} games={visible} />
+        ) : view === "timeline" ? (
+          <TimelineView {...viewProps} games={timelineList} allCount={visible.length} onSeeAll={() => pickView("board")} />
+        ) : (
+          <CardView {...viewProps} games={visible} reasons={filter === "best" ? reasonsById : undefined} />
+        )
+      ) : null}
+
+      <GameSheet
+        game={open}
+        time={open ? (open.timeValid ? theme.formatTime(Date.parse(open.start), tz) : "Time TBC") : ""}
+        myServices={prefs.services}
+        priority={open ? priorityOf(open.id) : null}
+        onPriority={(p) => open && setPriority(open, p)}
+        onClose={() => setOpen(null)}
+      />
 
       {filter === "best" && games && featured.length >= 2 && (
         <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -266,7 +402,7 @@ export function BrowsePage() {
         </div>
       )}
       {filter === "best" && games && prefs.plan.length === 0 && (
-        <p className="mt-3 text-xs text-muted">Tap the circle once for Want, again for Must. Tap a game for every way to watch it.</p>
+        <p className="mt-3 text-xs text-muted">Tap the round button once for Want, again for Must. Tap a game for every way to watch it.</p>
       )}
 
       {ready && prefs.plan.length > 0 && (

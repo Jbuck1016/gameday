@@ -207,3 +207,8 @@ export async function buildXData(plan: StoredPlan, games: Game[], dayParam: stri
     host,
   };
 }
+
+/** "5 free with an antenna" for over-the-air; "5 free on Fandango" for a free service. */
+export function freeLine(free: { games: number; name: string }): string {
+  return /antenna/i.test(free.name) ? `${free.games} free with an antenna` : `${free.games} free on ${free.name}`;
+}

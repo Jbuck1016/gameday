@@ -65,7 +65,7 @@ function Head({ d, title, label, size = 62 }: { d: XData; title: string; label: 
 
 const COLS = { time: 5, mer: 2, game: 22, on: 11, status: 5 };
 const logoSize = (size: number) => Math.round(size * 1.4);
-const logoCol = (size: number) => logoSize(size) * 2 - 10;
+const logoCol = (size: number) => logoSize(size) * 2 + 6;
 
 function ColHeads({ size }: { size: number }) {
   const w = (n: number) => n * (Math.round(size * 0.72) + Math.max(2, Math.round(size * 0.08)));
@@ -90,7 +90,7 @@ function BoardRow({ r, size }: { r: XRow; size: number }) {
       <Flaps text={r.mer} size={size} n={COLS.mer} color={MUTED} />
       <div style={row({ width: logoCol(size) })}>
         <Logo side={r.first} size={logoSize(size)} />
-        <Logo side={r.second} size={logoSize(size)} style={{ marginLeft: -10 }} />
+        <Logo side={r.second} size={logoSize(size)} style={{ marginLeft: 6 }} />
       </div>
       <Flaps text={gameText(r, COLS.game)} size={size} n={COLS.game} />
       <Flaps text={r.outlet} size={size} n={COLS.on} color={CREAM} />

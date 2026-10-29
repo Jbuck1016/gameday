@@ -68,8 +68,16 @@ function flush() {
   if (queue.length) flush();
 }
 
-export function track(name: string, props: Props = {}) {
+// Sticky properties added to every event from here on (e.g. which Today view is showing),
+// so planning can be compared by view.
+let context: Props = {};
+export function setTrackContext(p: Props) {
+  context = { ...context, ...p };
+}
+
+export function track(name: string, eventProps: Props = {}) {
   if (typeof window === "undefined") return;
+  const props: Props = { ...context, ...eventProps };
   try {
     vercelTrack(name, props);
   } catch {

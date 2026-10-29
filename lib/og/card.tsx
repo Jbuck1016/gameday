@@ -4,7 +4,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { cardWhere, cardWindow, timelineLabel, type DayModel } from "@/lib/plan";
 import { barStyle, type Theme } from "@/lib/themes";
-import { ensureContrast } from "@/lib/contrast";
+import { contrastRatio, ensureContrast } from "@/lib/contrast";
 import { matchupLabel, teamColor } from "@/lib/games";
 import { minutesIntoDay, parseDateKey } from "@/lib/time";
 import { APP_NAME } from "@/lib/config";
@@ -17,6 +17,7 @@ export const CARD_DIMENSIONS: Record<CardSize, { width: number; height: number; 
 };
 
 const TRACK_W = 760;
+const COMPACT_ROWS = 7;
 const LABEL_W = 150;
 
 function dateTitle(theme: Theme, key: string): string {
@@ -80,8 +81,12 @@ export function DayCard({
   const step = span > 8 * 60 ? 120 : 60;
   const hours: number[] = [];
   for (let m = Math.ceil(win.start / step) * step; m < win.end; m += step) hours.push(m / 60);
-  const tlGames = model.games.slice(0, dim.timelineRows);
-  const listGames = model.games.slice(0, dim.listRows);
+  // A busy portrait day (a college football Saturday) switches to tighter rows so up to 7 games fit.
+  const compact = size === "portrait" && model.games.length > dim.listRows;
+  const tlRowH = compact ? 28 : 38;
+  const listRowH = compact ? 58 : 92;
+  const tlGames = model.games.slice(0, compact ? COMPACT_ROWS : dim.timelineRows);
+  const listGames = model.games.slice(0, compact ? COMPACT_ROWS : dim.listRows);
   const hidden = model.games.length - listGames.length;
   const musts = model.games.filter((g) => g.priority === "must").length;
   const wants = model.games.length - musts;
@@ -167,7 +172,7 @@ export function DayCard({
           const label = timelineLabel(d.game);
           const color = teamColor(d.game, theme.surface);
           return (
-            <div key={d.game.id} style={flexRow({ alignItems: "center", height: 38 })}>
+            <div key={d.game.id} style={flexRow({ alignItems: "center", height: tlRowH })}>
               <div
                 style={{
                   display: "flex",
@@ -186,7 +191,7 @@ export function DayCard({
                   display: "flex",
                   position: "relative",
                   width: TRACK_W,
-                  height: 38,
+                  height: tlRowH,
                   background: theme.id === "broadcast" ? "#0E1626" : "transparent",
                   borderBottom: theme.id === "editorial" ? `1px solid ${theme.line}` : "none",
                 }}
@@ -196,9 +201,9 @@ export function DayCard({
                     display: "flex",
                     position: "absolute",
                     left,
-                    top: theme.id === "editorial" ? 12 : 7,
+                    top: theme.id === "editorial" ? (tlRowH - 14) / 2 : (tlRowH - 24) / 2 + (compact ? 2 : 0),
                     width: w,
-                    height: theme.id === "editorial" ? 14 : 24,
+                    height: theme.id === "editorial" ? 14 : compact ? 20 : 24,
                     ...barStyle(theme, d.priority, color),
                   }}
                 />
@@ -208,7 +213,7 @@ export function DayCard({
         })}
         {model.overlaps.length > 0 && (
           <div style={flexRow({ gap: 24, paddingLeft: LABEL_W, flexWrap: "wrap" })}>
-            {model.overlaps.slice(0, 3).map((o) => (
+            {model.overlaps.slice(0, compact ? 2 : 3).map((o) => (
               <Label key={o.from} theme={theme} style={{ fontSize: 17, color: theme.accent }}>
                 {`Overlap ${theme.formatTime(o.from, model.tz)}–${theme.formatTime(o.to, model.tz)} · ${o.ids.length} screens`}
               </Label>
@@ -229,19 +234,22 @@ export function DayCard({
               : theme.id === "terminal"
                 ? {}
                 : {};
+          // a light team colour (white kits) under the Broadcast look's light text needs dark text instead
+          const timeText =
+            theme.id === "broadcast" && d.priority === "must" && contrastRatio(theme.text, team) < 4.5 ? "#111318" : theme.id === "terminal" ? "#F2F2F2" : theme.text;
           const { where, via } = cardWhere(d);
           const startLabel = theme.formatTime(d.start, model.tz);
           return (
             <div
               key={d.game.id}
               style={flexRow({
-                height: 92,
+                height: listRowH,
                 ...(theme.id === "editorial" ? { borderTop: `1px solid ${theme.line}` } : {}),
                 ...(theme.id === "terminal" ? { borderBottom: `1px solid #1E1E1E` } : {}),
               })}
             >
               <div style={flexCol({ width: 170, flexShrink: 0, justifyContent: "center", paddingLeft: 18, ...timeBox })}>
-                <div style={flexRow({ alignItems: "baseline", gap: 6, color: theme.id === "terminal" ? "#F2F2F2" : theme.text })}>
+                <div style={flexRow({ alignItems: "baseline", gap: 6, color: timeText })}>
                   <div style={{ display: "flex", fontFamily: theme.cardFonts.display, fontWeight: theme.displayWeight, fontSize: 34 }}>
                     {d.game.timeValid ? clockPart(startLabel) : "TBC"}
                   </div>
@@ -249,9 +257,11 @@ export function DayCard({
                     <div style={{ display: "flex", fontFamily: theme.cardFonts.label, fontWeight: 700, fontSize: 18 }}>{meridiemPart(startLabel)}</div>
                   ) : null}
                 </div>
-                <Label theme={theme} style={{ fontSize: 16, color: theme.id === "broadcast" ? theme.text : theme.muted }}>
-                  {`to ~${theme.formatTime(d.end, model.tz)}`}
-                </Label>
+                {compact ? null : (
+                  <Label theme={theme} style={{ fontSize: 16, color: theme.id === "broadcast" ? timeText : theme.muted }}>
+                    {`to ~${theme.formatTime(d.end, model.tz)}`}
+                  </Label>
+                )}
               </div>
               <div
                 style={flexCol({
@@ -271,7 +281,7 @@ export function DayCard({
                     fontFamily: theme.cardFonts.display,
                     fontWeight: theme.id === "editorial" ? (d.priority === "must" ? 600 : 400) : theme.displayWeight,
                     fontStyle: theme.id === "editorial" && d.priority === "want" ? "italic" : "normal",
-                    fontSize: theme.id === "terminal" ? 26 : matchupLabel(d.game).length > 26 ? 25 : 30,
+                    fontSize: (theme.id === "terminal" ? 26 : matchupLabel(d.game).length > 26 ? 25 : 30) - (compact ? 3 : 0),
                     textTransform: theme.id === "editorial" ? "none" : "uppercase",
                     color: theme.id === "terminal" ? "#F2F2F2" : theme.text,
                   }}
@@ -279,7 +289,7 @@ export function DayCard({
                   {matchupLabel(d.game).slice(0, 34)}
                 </div>
                 <div style={{ display: "flex", fontSize: 17, color: theme.muted }}>
-                  {[d.game.leagueName, d.game.venue].filter(Boolean).join(" · ").slice(0, 60)}
+                  {(compact ? [d.game.leagueName] : [d.game.leagueName, d.game.venue]).filter(Boolean).join(" · ").slice(0, 60)}
                 </div>
               </div>
               <div
@@ -313,11 +323,11 @@ export function DayCard({
           paddingTop: 20,
         })}
       >
-        <div style={flexCol({ gap: 4 })}>
+        <div style={flexCol({ gap: 4, flexShrink: 1, minWidth: 0, paddingRight: 24 })}>
           <Label theme={theme} style={{ fontSize: 20, color: theme.accent }}>Services needed</Label>
-          <div style={{ display: "flex", fontSize: 21 }}>{serviceNames.length ? serviceNames.join(" · ") : "None listed yet"}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", fontSize: 21 }}>{serviceNames.length ? serviceNames.join(" · ") : "None listed yet"}</div>
         </div>
-        <div style={flexCol({ alignItems: "flex-end", gap: 4 })}>
+        <div style={flexCol({ alignItems: "flex-end", gap: 4, flexShrink: 0 })}>
           {hidden > 0 && <div style={{ display: "flex", fontSize: 17, color: theme.text }}>{`+${hidden} more in the plan`}</div>}
           <div style={{ display: "flex", fontSize: 15, color: theme.muted }}>End times estimated</div>
           {siteHost && <div style={{ display: "flex", fontSize: 18, color: theme.text }}>{`Make yours: ${siteHost}`}</div>}

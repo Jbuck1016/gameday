@@ -132,6 +132,7 @@ export async function buildXData(plan: StoredPlan, games: Game[], dayParam: stri
       const { time, mer } = clock(d.start, tz);
       const { where } = cardWhere(d);
       const likely = d.best?.confidence === "likely";
+      const national = plan.services.length ? null : broadcastOutlet(d.game, d.best?.outlet ?? null);
       return {
         id: d.game.id,
         start: d.start,
@@ -142,7 +143,7 @@ export async function buildXData(plan: StoredPlan, games: Game[], dayParam: stri
         second: soccer ? away : home,
         sep: soccer ? "v" : "at",
         // an unannounced channel shows its most likely outlet with a "?"
-        outlet: likely ? `${where.split(" / ")[0]}?` : where,
+        outlet: national ?? (likely ? `${where.split(" / ")[0]}?` : where),
         likely,
         priority: d.priority,
         league: d.game.leagueShort,
@@ -211,4 +212,16 @@ export async function buildXData(plan: StoredPlan, games: Game[], dayParam: stri
 /** "5 free with an antenna" for over-the-air; "5 free on Fandango" for a free service. */
 export function freeLine(free: { games: number; name: string }): string {
   return /antenna/i.test(free.name) ? `${free.games} free with an antenna` : `${free.games} free on ${free.name}`;
+}
+
+/**
+ * For a national post (no services picked), a game on a broadcast network shows that network
+ * (CBS, FOX) rather than an out-of-market package like NFL Sunday Ticket, because that is where
+ * most viewers will find it. Null when the best outlet is already free or included somewhere.
+ */
+export function broadcastOutlet(g: Game, bestOutlet: string | null): string | null {
+  const best = g.outlets.find((o) => o.outlet === bestOutlet);
+  if (best?.services.some((s) => s.status === "included")) return null;
+  const onAir = g.outlets.find((o) => (o.confidence === "confirmed" || o.confidence === "regional") && o.services.some((s) => s.id === "antenna" && s.status === "included"));
+  return onAir?.outlet ?? null;
 }

@@ -4,7 +4,7 @@
 
 import { X_H, X_W, freeLine, inkOn, type XData, type XRow } from "./data";
 import { Logo, col, row, sideLabel } from "./kit";
-import { minutesIntoDay } from "@/lib/time";
+import { localDayRange, minutesIntoDay } from "@/lib/time";
 
 /** Logos sit side by side with a small gap, never overlapping. */
 const logoGap = (logo: number) => Math.max(4, Math.round(logo * 0.08));
@@ -118,8 +118,10 @@ function TimelineView({ d, from, to, laneH, logo, text, big, placed, lanes }: { 
   const step = span > 9 * 60 ? 120 : 60;
   const hours: number[] = [];
   for (let m = Math.ceil(from / step) * step; m < to; m += step) hours.push(m);
+  // read the hour off the local clock, so the day the clocks change is labelled right
+  const dayStart = localDayRange(d.dayKey, d.tz).from.getTime();
   const hourLabel = (m: number) => {
-    const h = Math.floor(m / 60) % 24;
+    const h = Number(new Intl.DateTimeFormat("en-US", { timeZone: d.tz, hour: "numeric", hourCycle: "h23" }).format(new Date(dayStart + m * 60000))) % 24;
     return `${h % 12 === 0 ? 12 : h % 12}${h < 12 ? "a" : "p"}`;
   };
   const crunch = d.crunch;

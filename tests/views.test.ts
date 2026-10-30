@@ -126,3 +126,18 @@ describe("clusterLanes", () => {
     expect(new Set(["a", "b", "c", "d"].map((id) => c.lane.get(id))).size).toBe(4);
   });
 });
+
+describe("broadcastOutlet", () => {
+  it("shows CBS rather than NFL Sunday Ticket on a national post", async () => {
+    const { broadcastOutlet } = await import("@/lib/og/x/data");
+    const g = {
+      ...game("nfl", 0, 3),
+      outlets: [
+        { outlet: "NFL Sunday Ticket", confidence: "confirmed", services: [{ id: "nfl_sunday_ticket", name: "NFL Sunday Ticket", status: "direct" }] },
+        { outlet: "CBS", confidence: "regional", services: [{ id: "antenna", name: "Antenna", status: "included" }, { id: "fubo", name: "Fubo", status: "included" }] },
+      ],
+    } as unknown as Game;
+    expect(broadcastOutlet(g, "NFL Sunday Ticket")).toBe("CBS");
+    expect(broadcastOutlet(g, "CBS")).toBeNull();
+  });
+});

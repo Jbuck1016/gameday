@@ -42,7 +42,7 @@ export async function GET(req: Request) {
     const plan = await src.getPlan(slug);
     if (!plan) return bad("Plan not found", 404);
     const games = await loadPlanGames(plan);
-    const [d, fonts] = await Promise.all([buildXData(plan, games, u.searchParams.get("day"), u.host), fontsForLook(look)]);
+    const [d, fonts] = await Promise.all([buildXData(plan, games, u.searchParams.get("day"), linkHost(u)), fontsForLook(look)]);
     const View = LOOKS[look][kind];
     return new ImageResponse(<View d={d} />, {
       width: X_W,
@@ -56,4 +56,9 @@ export async function GET(req: Request) {
   } catch (e) {
     return serverError(e);
   }
+}
+
+/** `link=0` leaves the site's address off the image (posts that shouldn't point at the site). */
+function linkHost(u: URL): string {
+  return u.searchParams.get("link") === "0" ? "" : u.host;
 }

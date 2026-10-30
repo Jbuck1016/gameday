@@ -111,7 +111,7 @@ function Foot({ d, left }: { d: XData; left: string }) {
           <div style={{ display: "flex", fontFamily: MONO, fontWeight: 700, fontSize: 22, color: MUTED }}>{`· ${d.free.games} FREE WITH ${d.free.name.toUpperCase()}`}</div>
         ) : null}
       </div>
-      <div style={{ display: "flex", fontFamily: MONO, fontWeight: 700, fontSize: 22, color: MUTED }}>{`PLAN YOURS · ${d.host.toUpperCase()}`}</div>
+      {d.host ? <div style={{ display: "flex", fontFamily: MONO, fontWeight: 700, fontSize: 22, color: MUTED }}>{`PLAN YOURS · ${d.host.toUpperCase()}`}</div> : null}
     </div>
   );
 }
@@ -172,7 +172,7 @@ export function DeparturesCover({ d }: { d: XData }) {
       </div>
       <div style={row({ justifyContent: "space-between" })}>
         <div style={{ display: "flex", fontFamily: MONO, fontWeight: 700, fontSize: 24, color: MUTED }}>CHANNELS AND BLACKOUTS FOR WHERE YOU LIVE</div>
-        <div style={{ display: "flex", fontFamily: MONO, fontWeight: 700, fontSize: 24, color: CREAM }}>{d.host.toUpperCase()}</div>
+        {d.host ? <div style={{ display: "flex", fontFamily: MONO, fontWeight: 700, fontSize: 24, color: CREAM }}>{d.host.toUpperCase()}</div> : null}
       </div>
     </div>
   );

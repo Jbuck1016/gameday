@@ -50,7 +50,7 @@ function Footer({ d, label, pills = true }: { d: XData; label: string; pills?: b
           <div style={{ display: "flex", fontFamily: FONT, fontWeight: 700, fontSize: 24, color: MUTED, marginLeft: 6 }}>{freeLine(d.free)}</div>
         ) : null}
       </div>
-      <div style={{ display: "flex", fontFamily: FONT, fontWeight: 700, fontSize: 24, color: INK }}>{`Plan yours · ${d.host}`}</div>
+      {d.host ? <div style={{ display: "flex", fontFamily: FONT, fontWeight: 700, fontSize: 24, color: INK }}>{`Plan yours · ${d.host}`}</div> : null}
     </div>
   );
 }

@@ -69,7 +69,7 @@ export function CardSlate({ d }: { d: XData }) {
           ) : null}
           <div style={col({ gap: 8, marginTop: 16 })}>
             <div style={{ display: "flex", alignSelf: "flex-start", fontFamily: DISPLAY, fontSize: 44, color: PAPER, background: INK, padding: "2px 14px", whiteSpace: "nowrap" }}>GAME DAY</div>
-            <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 600, fontSize: 24, color: INK }}>{d.host}</div>
+            {d.host ? <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 600, fontSize: 24, color: INK }}>{d.host}</div> : null}
           </div>
         </div>
       </div>
@@ -131,7 +131,7 @@ export function CardCrunch({ d }: { d: XData }) {
         <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 600, fontSize: 30, color: PAPER, marginTop: 6 }}>{up(`until ${c.toLabel}`)}</div>
         <div style={col({ marginTop: "auto", gap: 10 })}>
           <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 40, color: INK, background: PAPER, padding: "2px 14px", alignSelf: "flex-start" }}>GAME DAY</div>
-          <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 600, fontSize: 24, color: PAPER }}>{`PLAN YOUR SCREENS · ${d.host}`}</div>
+          {d.host ? <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 600, fontSize: 24, color: PAPER }}>{`PLAN YOUR SCREENS · ${d.host}`}</div> : null}
         </div>
       </div>
     </div>
@@ -161,7 +161,7 @@ export function CardCover({ d }: { d: XData }) {
         </div>
         <div style={row({ alignItems: "center", gap: 12, marginTop: 40 })}>
           <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 40, color: PAPER, background: INK, padding: "2px 14px" }}>GAME DAY</div>
-          <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 600, fontSize: 24, color: INK }}>{`CHANNELS FOR WHERE YOU LIVE · ${d.host}`}</div>
+          {d.host ? <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 600, fontSize: 24, color: INK }}>{`CHANNELS FOR WHERE YOU LIVE · ${d.host}`}</div> : null}
         </div>
       </div>
     </div>

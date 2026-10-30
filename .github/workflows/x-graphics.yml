@@ -14,6 +14,9 @@ on:
       kinds:
         description: Formats to render, space separated
         default: slate crunch cover
+      link:
+        description: 1 shows the site address on the image, 0 leaves it off
+        default: "1"
 
 permissions:
   contents: write
@@ -27,15 +30,17 @@ jobs:
           PLAN: ${{ inputs.plan }}
           LOOKS: ${{ inputs.looks }}
           KINDS: ${{ inputs.kinds }}
+          LINK: ${{ inputs.link }}
         run: |
           set -euo pipefail
           [[ "$PLAN" =~ ^[A-Za-z0-9]{4,16}$ ]] || { echo "bad plan slug"; exit 1; }
+          [[ "$LINK" =~ ^[01]$ ]] || { echo "link must be 0 or 1"; exit 1; }
           mkdir out
           for look in $LOOKS; do
             for kind in $KINDS; do
               [[ "$look$kind" =~ ^[a-z]+$ ]] || continue
               curl -fsS --retry 2 -o "out/${look}-${kind}.png" \
-                "https://gameday-tau-seven.vercel.app/api/og/x?plan=${PLAN}&kind=${kind}&look=${look}"
+                "https://gameday-tau-seven.vercel.app/api/og/x?plan=${PLAN}&kind=${kind}&look=${look}&link=${LINK}"
             done
           done
           ls -la out

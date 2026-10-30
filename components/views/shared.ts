@@ -6,11 +6,11 @@ import { contrastRatio, normalizeHex } from "@/lib/contrast";
 import { bestWatch } from "@/lib/games";
 
 /** Display order: home first for soccer ("Chelsea v Man Utd"), away first otherwise ("Florida at Georgia"). */
-export function sides(g: Game): { first: TeamLite | null; second: TeamLite | null; firstRank: number | null; secondRank: number | null; sep: "v" | "at" } {
+export function sides(g: Game): { first: TeamLite | null; second: TeamLite | null; firstRank: number | null; secondRank: number | null; sep: "v" | "vs" | "at" } {
   const soccer = g.sport === "soccer";
   return soccer
     ? { first: g.home, second: g.away, firstRank: g.homeRank, secondRank: g.awayRank, sep: "v" }
-    : { first: g.away, second: g.home, firstRank: g.awayRank, secondRank: g.homeRank, sep: "at" };
+    : { first: g.away, second: g.home, firstRank: g.awayRank, secondRank: g.homeRank, sep: g.neutral ? "vs" : "at" };
 }
 
 export function teamLabel(t: TeamLite | null, rank: number | null, useAbbr = false): string {

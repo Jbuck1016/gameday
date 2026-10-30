@@ -109,6 +109,8 @@ export type Game = {
   homeRank: number | null;
   awayRank: number | null;
   venue: string | null;
+  /** played at a neutral site ("FLA VS UGA" in the feed), so "vs" rather than "at" */
+  neutral?: boolean;
   involvesLocal: boolean;
   durationMin: number;
   outlets: OutletOption[];

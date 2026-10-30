@@ -141,3 +141,11 @@ describe("broadcastOutlet", () => {
     expect(broadcastOutlet(g, "CBS")).toBeNull();
   });
 });
+
+describe("neutral sites", () => {
+  it("says vs, not at, for a neutral-site game", async () => {
+    const { sides } = await import("@/components/views/shared");
+    expect(sides({ ...game("fla-uga", 0, 3), neutral: true }).sep).toBe("vs");
+    expect(sides(game("minn-iu", 0, 3)).sep).toBe("at");
+  });
+});

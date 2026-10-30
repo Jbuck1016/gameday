@@ -20,7 +20,7 @@ export type XRow = {
   mer: string;
   first: Side;
   second: Side;
-  sep: "v" | "at";
+  sep: "v" | "vs" | "at";
   outlet: string;
   likely: boolean;
   priority: Priority;
@@ -141,7 +141,7 @@ export async function buildXData(plan: StoredPlan, games: Game[], dayParam: stri
         mer: d.game.timeValid ? mer : "",
         first: soccer ? home : away,
         second: soccer ? away : home,
-        sep: soccer ? "v" : "at",
+        sep: soccer ? "v" : d.game.neutral ? "vs" : "at",
         // an unannounced channel shows its most likely outlet with a "?"
         outlet: national ?? (likely ? `${where.split(" / ")[0]}?` : where),
         likely,

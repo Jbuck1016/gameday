@@ -131,7 +131,7 @@ export function DeparturesSlate({ d }: { d: XData }) {
         {rows.map((r) => (
           <BoardRow key={r.id} r={r} size={size} />
         ))}
-        {more > 0 ? <div style={{ display: "flex", fontFamily: MONO, fontWeight: 700, fontSize: 22, color: MUTED }}>{`+${more} MORE IN THE PLAN`}</div> : null}
+        {more > 0 ? <div style={{ display: "flex", fontFamily: MONO, fontWeight: 700, fontSize: 22, color: MUTED }}>{`+${more} MORE${d.host ? " IN THE PLAN" : ""}`}</div> : null}
       </div>
       <Foot d={d} left="YOU NEED" />
     </div>

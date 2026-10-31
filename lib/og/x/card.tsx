@@ -77,7 +77,7 @@ export function CardSlate({ d }: { d: XData }) {
         {rows.map((r) => (
           <Band key={r.id} r={r} h={bandH} w={1024} />
         ))}
-        {more > 0 ? <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 700, fontSize: 28, color: INK }}>{`+${more} MORE IN THE PLAN`}</div> : null}
+        {more > 0 ? <div style={{ display: "flex", fontFamily: LABEL, fontWeight: 700, fontSize: 28, color: INK }}>{`+${more} MORE${d.host ? " IN THE PLAN" : ""}`}</div> : null}
       </div>
     </div>
   );

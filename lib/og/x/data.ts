@@ -214,14 +214,22 @@ export function freeLine(free: { games: number; name: string }): string {
   return /antenna/i.test(free.name) ? `${free.games} free with an antenna` : `${free.games} free on ${free.name}`;
 }
 
+/** Live TV bundles: an outlet more of them carry is "the channel" most viewers will look for. */
+const LIVE_TV = new Set(["youtube_tv", "hulu_live", "fubo", "sling", "directv_stream"]);
+
 /**
- * For a national post (no services picked), a game on a broadcast network shows that network
- * (CBS, FOX) rather than an out-of-market package like NFL Sunday Ticket, because that is where
- * most viewers will find it. Null when the best outlet is already free or included somewhere.
+ * For a national post (no services picked), the channel to print for a game: a broadcast network
+ * (CBS, FOX) beats an out-of-market package like NFL Sunday Ticket, and otherwise the outlet the
+ * most live TV bundles carry wins (ESPN over a Disney+ simulcast, CNBC over a free app).
+ * Null when the best outlet is already that choice.
  */
 export function broadcastOutlet(g: Game, bestOutlet: string | null): string | null {
+  const firm = g.outlets.filter((o) => o.confidence === "confirmed" || o.confidence === "regional");
+  const onAir = firm.find((o) => o.services.some((s) => s.id === "antenna" && s.status === "included"));
+  const bundles = (o: (typeof firm)[number]) => o.services.filter((s) => LIVE_TV.has(s.id) && s.status === "included").length;
+  const pick = onAir ?? [...firm].sort((a, b) => bundles(b) - bundles(a))[0];
+  if (!pick || pick.outlet === bestOutlet) return null;
   const best = g.outlets.find((o) => o.outlet === bestOutlet);
-  if (best?.services.some((s) => s.status === "included")) return null;
-  const onAir = g.outlets.find((o) => (o.confidence === "confirmed" || o.confidence === "regional") && o.services.some((s) => s.id === "antenna" && s.status === "included"));
-  return onAir?.outlet ?? null;
+  if (!onAir && best && bundles(best) >= bundles(pick)) return null;
+  return pick.outlet;
 }

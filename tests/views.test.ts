@@ -149,3 +149,26 @@ describe("neutral sites", () => {
     expect(sides(game("minn-iu", 0, 3)).sep).toBe("at");
   });
 });
+
+describe("broadcastOutlet on streaming simulcasts", () => {
+  it("prints ESPN over a Disney+ simulcast and CNBC over a free app", async () => {
+    const { broadcastOutlet } = await import("@/lib/og/x/data");
+    const espn = {
+      ...game("msst-tex", 0, 3),
+      outlets: [
+        { outlet: "Disney+", confidence: "confirmed", services: [{ id: "disney_plus", name: "Disney+", status: "included" }, { id: "hulu_live", name: "Hulu + Live TV", status: "included" }] },
+        { outlet: "ESPN", confidence: "confirmed", services: ["fubo", "hulu_live", "youtube_tv"].map((id) => ({ id, name: id, status: "included" })) },
+      ],
+    } as unknown as Game;
+    expect(broadcastOutlet(espn, "Disney+")).toBe("ESPN");
+    expect(broadcastOutlet(espn, "ESPN")).toBeNull();
+    const cnbc = {
+      ...game("bay-bvb", 0, 2),
+      outlets: [
+        { outlet: "CNBC", confidence: "confirmed", services: ["hulu_live", "youtube_tv"].map((id) => ({ id, name: id, status: "included" })) },
+        { outlet: "Fandango", confidence: "confirmed", services: [{ id: "fandango", name: "Fandango", status: "included" }] },
+      ],
+    } as unknown as Game;
+    expect(broadcastOutlet(cnbc, "Fandango")).toBe("CNBC");
+  });
+});

@@ -30,6 +30,8 @@ export interface DataSource {
   saveAccountPrefs(userId: string, p: AccountPrefs): Promise<string>;
   linkVisitor(userId: string, visitor: string): Promise<void>;
   deleteAccount(userId: string): Promise<void>;
+  /** The kill switch for the automated X posts (gameday_site.x_settings). */
+  xPostingEnabled(): Promise<boolean>;
 }
 
 export function usingFixtures(): boolean {

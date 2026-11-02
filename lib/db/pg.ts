@@ -321,4 +321,15 @@ export class PgSource implements DataSource {
     const sql = await getSql();
     await sql`select gameday_site.delete_account(${userId}::uuid)`;
   }
+
+  async xPostingEnabled(): Promise<boolean> {
+    const sql = await getSql();
+    try {
+      const [r] = await sql`select value from gameday_site.x_settings where key = 'posting_enabled'`;
+      return r?.value === true;
+    } catch {
+      // no settings table yet: posting stays off
+      return false;
+    }
+  }
 }

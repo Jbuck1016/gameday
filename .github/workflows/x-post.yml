@@ -1,0 +1,72 @@
+# Posts the day's slate to X on a schedule (scripts/x-post.mjs). Logs and images go to the
+# x-graphics branch under x-log/ and x-posts/. Stop all posting with the kill switch
+# (gameday_site.x_settings, key posting_enabled); disabling this workflow also works.
+name: X post
+
+on:
+  schedule:
+    # Weekdays 16:00 UTC: 11am ET in winter, noon ET in summer (covers games noon to midnight ET)
+    - cron: "0 16 * * 1-5"
+    # Weekends 12:30 UTC: 7:30am ET winter (morning post, games 7am to 2pm ET)
+    - cron: "30 12 * * 0,6"
+    # Weekends 18:00 UTC: 1pm ET winter (afternoon post, games 2pm to midnight ET)
+    - cron: "0 18 * * 0,6"
+  workflow_dispatch:
+    inputs:
+      day:
+        description: ET day to post for (YYYY-MM-DD); leave empty for now
+        default: ""
+      slot:
+        description: weekday, morning or afternoon; leave empty for now
+        default: ""
+      dry_run:
+        description: 1 renders and logs without posting
+        default: "1"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: x-post
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check out the log branch
+        env:
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          url="https://x-access-token:${TOKEN}@github.com/${REPO}.git"
+          git clone --depth 1 --branch x-graphics "$url" store
+      - name: Post
+        env:
+          STORE: store
+          SLOT_DAY: ${{ inputs.day }}
+          SLOT_KIND: ${{ inputs.slot }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || '0' }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+        run: node scripts/x-post.mjs
+      - name: Save the log and images
+        if: always()
+        run: |
+          set -euo pipefail
+          cd store
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -qm "X post log $(date -u +%FT%TZ)"
+          git push -q origin x-graphics

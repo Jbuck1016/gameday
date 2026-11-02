@@ -148,6 +148,9 @@ export class FixtureSource implements DataSource {
   async deleteAccount(userId: string): Promise<void> {
     accounts.delete(userId);
   }
+  async xPostingEnabled(): Promise<boolean> {
+    return true;
+  }
 }
 
 /** A realistic Saturday built from the snapshot: Arsenal, a big college game, LA hockey, and two extras. */
